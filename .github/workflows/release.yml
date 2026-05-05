@@ -1,0 +1,237 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.bump.outputs.tag }}
+      previous_tag: ${{ steps.bump.outputs.previous_tag }}
+      bump_type: ${{ steps.bump.outputs.bump_type }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next tag from commit markers
+        id: bump
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          latest_tag="$(git tag --list 'v*' --sort=-v:refname | head -n1 || true)"
+
+          if [[ -n "$latest_tag" ]]; then
+            commit_messages="$(git log --pretty=format:%s "${latest_tag}..HEAD")"
+          else
+            commit_messages="$(git log --pretty=format:%s)"
+          fi
+
+          if [[ -z "$commit_messages" ]]; then
+            echo "No commit messages found."
+            exit 1
+          fi
+
+          if grep -q '\[Major\]' <<<"$commit_messages"; then
+            bump_type="major"
+          elif grep -q '\[feat\]' <<<"$commit_messages"; then
+            bump_type="minor"
+          elif grep -q '\[fix\]' <<<"$commit_messages"; then
+            bump_type="patch"
+          else
+            echo "No release marker found. Use one of: [fix], [feat], [Major] in commit messages."
+            exit 1
+          fi
+
+          if [[ -z "$latest_tag" ]]; then
+            next_tag="v0.1.0"
+          else
+            version="${latest_tag#v}"
+            IFS='.' read -r major minor patch <<<"$version"
+
+            case "$bump_type" in
+              major)
+                major=$((major + 1))
+                minor=0
+                patch=0
+                ;;
+              minor)
+                minor=$((minor + 1))
+                patch=0
+                ;;
+              patch)
+                patch=$((patch + 1))
+                ;;
+            esac
+
+            next_tag="v${major}.${minor}.${patch}"
+          fi
+
+          echo "tag=$next_tag" >> "$GITHUB_OUTPUT"
+          echo "previous_tag=$latest_tag" >> "$GITHUB_OUTPUT"
+          echo "bump_type=$bump_type" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        env:
+          TAG: ${{ steps.bump.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+  release:
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout release tag
+        run: git checkout "${{ needs.version.outputs.tag }}"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install API dependencies
+        run: npm ci
+        working-directory: apps/api
+
+      - name: Install Web dependencies
+        run: npm ci
+        working-directory: apps/web
+
+      - name: Build API
+        run: npm run build
+        working-directory: apps/api
+
+      - name: Build Web
+        run: npm run build
+        working-directory: apps/web
+
+      - name: Create release bundle
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BUNDLE_DIR="release-bundle"
+          ZIP_NAME="open-movie-planer-${TAG}.zip"
+
+          rm -rf "$BUNDLE_DIR" "$ZIP_NAME"
+          mkdir -p "$BUNDLE_DIR/apps/api" "$BUNDLE_DIR/apps/web" "$BUNDLE_DIR/prisma"
+
+          cp -r apps/api/dist "$BUNDLE_DIR/apps/api/"
+          cp apps/api/package.json apps/api/package-lock.json "$BUNDLE_DIR/apps/api/"
+          cp apps/api/.env.example "$BUNDLE_DIR/apps/api/"
+
+          cp -r apps/web/dist "$BUNDLE_DIR/apps/web/"
+          cp apps/web/package.json apps/web/package-lock.json "$BUNDLE_DIR/apps/web/"
+          cp apps/web/.env.example "$BUNDLE_DIR/apps/web/"
+
+          cp -r prisma "$BUNDLE_DIR/"
+          cp README.md "$BUNDLE_DIR/README.md"
+          cp docker-compose.yml "$BUNDLE_DIR/docker-compose.yml"
+          cp deploy/start.bat "$BUNDLE_DIR/start.bat"
+          cp deploy/start.sh "$BUNDLE_DIR/start.sh"
+          chmod +x "$BUNDLE_DIR/start.sh"
+
+          cat > "$BUNDLE_DIR/STARTUP.md" << 'EOF'
+          Open Movie Planer - Release Bundle
+
+          Voraussetzungen:
+          - Node.js 20+
+          - npm
+          - Docker (empfohlen, für automatische PostgreSQL-Einrichtung)
+            Ohne Docker: PostgreSQL 16 manuell starten
+            (user: omp_user | password: omp_password | db: open_movie_planer | port: 5432)
+
+          Start (Windows):
+          - start.bat ausfuehren
+
+          Start (Linux/macOS):
+          - chmod +x start.sh
+          - ./start.sh
+
+          Erster Start:
+          - PostgreSQL-Image wird automatisch via Docker heruntergeladen
+          - Datenbank-Migrationen werden eingespielt
+
+          Weiterer Start:
+          - Bestehende Datenbank wird wiederverwendet
+          - Neue Migrationen werden automatisch eingespielt
+
+          Standard-Ports:
+          - API: 3000
+          - Web: 4173
+
+          Netzwerkzugriff:
+          - Web: http://<HOST-IP>:4173
+          - API: http://<HOST-IP>:3000
+          EOF
+
+          (cd "$BUNDLE_DIR" && zip -r "../$ZIP_NAME" .)
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: open-movie-planer-${{ needs.version.outputs.tag }}
+          path: open-movie-planer-${{ needs.version.outputs.tag }}.zip
+
+      - name: Create release notes
+        id: notes
+        env:
+          PREV_TAG: ${{ needs.version.outputs.previous_tag }}
+          TAG: ${{ needs.version.outputs.tag }}
+          BUMP_TYPE: ${{ needs.version.outputs.bump_type }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          {
+            echo "# Open Movie Planer ${TAG}"
+            echo
+            echo "Bump-Type: ${BUMP_TYPE}"
+            echo
+            echo "## Changes"
+            if [[ -n "$PREV_TAG" ]]; then
+              git log --pretty=format:'- %s (%h)' "${PREV_TAG}..${TAG}"
+            else
+              git log --pretty=format:'- %s (%h)' "${TAG}"
+            fi
+            echo
+            echo
+            echo "## Download"
+            echo "- open-movie-planer-${TAG}.zip"
+          } > RELEASE_NOTES.md
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: Open Movie Planer ${{ needs.version.outputs.tag }}
+          body_path: RELEASE_NOTES.md
+          files: open-movie-planer-${{ needs.version.outputs.tag }}.zip

@@ -1,0 +1,92 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-0: #0e1319;
+  --bg-1: #151d27;
+  --bg-2: #1d2732;
+  --surface: #e6e1db;
+  --surface-2: #f3efe8;
+  --surface-3: #d7dbe2;
+  --ink-1: #1a222d;
+  --ink-2: #425162;
+  --line: #7f93aa;
+  --line-soft: #b8c1cc;
+  --accent: #f3cf55;
+  --accent-2: #7cc6f2;
+  --accent-3: #b7edb4;
+  --danger: #cf5c4f;
+  --success: #287a54;
+  --text-1: #f6f8fb;
+  --text-2: #b4c0cf;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "IBM Plex Sans", sans-serif;
+  color: var(--text-1);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    radial-gradient(1200px 500px at 10% -20%, rgba(124, 198, 242, 0.13), transparent 60%),
+    radial-gradient(900px 400px at 90% -10%, rgba(243, 207, 85, 0.08), transparent 55%),
+    linear-gradient(180deg, #0b1016, #121821 45%, #0f141c);
+  background-size: 24px 24px, 24px 24px, auto, auto, auto;
+  background-position: 0 0, 0 0, center, center, center;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.font-mono-data {
+  font-family: "JetBrains Mono", monospace;
+}
+
+.panel {
+  background: linear-gradient(180deg, rgba(230, 225, 219, 0.12), rgba(215, 219, 226, 0.08));
+  border: 1px solid rgba(127, 147, 170, 0.42);
+  border-radius: 10px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+}
+
+.kpi-value {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.75rem;
+  line-height: 1.1;
+}
+
+.edit-flash {
+  animation: flash 280ms ease-out;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+@keyframes flash {
+  from {
+    background: rgba(183, 237, 180, 0.5);
+  }
+  to {
+    background: transparent;
+  }
+}
