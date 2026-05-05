@@ -10,6 +10,8 @@
     "expenses": "Kosten",
     "shootPlan": "Drehplan",
     "contacts": "Kontakte & Termine",
+    "contracts": "Vertragsverwaltung",
+    "timeTracking": "Zeiterfassung",
     "disposition": "Drehdispo",
     "projects": "Projekte",
     "settings": "Einstellungen"
@@ -36,7 +38,9 @@
     "warning": "Warnung",
     "info": "Information",
     "refresh": "Aktualisieren",
-    "open": "offen"
+    "open": "offen",
+    "yes": "Ja",
+    "no": "Nein"
   },
   "updateNotice": {
     "title": "Neue Version verfügbar",
@@ -70,6 +74,7 @@
     "lastOpened": "Zuletzt geöffnet",
     "notOpenedYet": "Noch nicht geöffnet",
     "activeProject": "Aktives Projekt",
+    "closeProject": "Projekt schließen",
     "createFailed": "Projekt konnte nicht erstellt werden.",
     "phase": "Phase",
     "status": "Status",
@@ -208,6 +213,32 @@
     "noAppointments": "Keine Termine vorhanden.",
     "endBeforeStart": "Endzeit muss nach Startzeit liegen."
   },
+  "contracts": {
+    "title": "Vertragsverwaltung",
+    "hint": "Cast- und Crew-Verträge mit Laufzeit und Status verwalten",
+    "contractTitle": "Vertrag",
+    "type": "Typ",
+    "status": "Status",
+    "validFrom": "Gültig ab",
+    "validTo": "Gültig bis",
+    "createContract": "Vertrag anlegen",
+    "noContracts": "Keine Verträge vorhanden.",
+    "status_draft": "Entwurf",
+    "status_active": "Aktiv",
+    "status_expired": "Abgelaufen",
+    "status_terminated": "Beendet"
+  },
+  "timeTracking": {
+    "title": "Digitale Zeiterfassung",
+    "hint": "Arbeitszeiten und Freigaben pro Person erfassen",
+    "activity": "Tätigkeit",
+    "period": "Zeitraum",
+    "breakMinutes": "Pause (Min)",
+    "hours": "Stunden",
+    "approved": "Freigegeben",
+    "createEntry": "Zeiteintrag anlegen",
+    "noEntries": "Keine Zeiteinträge vorhanden."
+  },
   "settings": {
     "title": "Einstellungen",
     "language": "Sprache",
@@ -246,6 +277,7 @@
     "errorLoading": "Fehler beim Laden der Daten",
     "confirmDelete": "Wirklich löschen?",
     "confirmAction": "Diese Aktion kann nicht rückgängig gemacht werden",
+    "confirmCloseWithUnsaved": "Es gibt ungespeicherte Eingaben. Projekt trotzdem schließen?",
     "reloadPage": "Neu laden",
     "apiError": "API-Fehler"
   },
@@ -258,6 +290,8 @@
     "expensesHint": "Erfasste Ausgaben und Zuordnung",
     "shootPlanHint": "Termine, Orte, Notizen",
     "contactsHint": "Crew/Cast + Kalender",
+    "contractsHint": "Verträge, Laufzeit und Status",
+    "timeTrackingHint": "Stunden, Pausen, Freigabe",
     "dispositionHint": "Call Sheet je Drehtag",
     "layoutPrinciple": "Layout-Prinzip",
     "layoutDescription": "Werkzeugleiste oben, Datengitter im Zentrum, Formularinspektor rechts und Statusleiste unten.",

@@ -35,6 +35,8 @@ model Project {
   shootDays   ShootDay[]
   contacts    ProjectContact[]
   appointments ProjectAppointment[]
+  contracts   ProjectContract[]
+  timeEntries TimeEntry[]
 
   @@map("projects")
 }
@@ -220,6 +222,8 @@ model ProjectContact {
 
   project      Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
   appointments ProjectAppointment[]
+  contracts    ProjectContract[]
+  timeEntries  TimeEntry[]
 
   @@index([projectId])
   @@index([category])
@@ -245,4 +249,52 @@ model ProjectAppointment {
   @@index([contactId])
   @@index([startAt])
   @@map("project_appointments")
+}
+
+model ProjectContract {
+  id             String    @id @default(uuid()) @db.Uuid
+  projectId      String    @db.Uuid
+  contactId      String?   @db.Uuid
+  title          String
+  contractType   String
+  status         String
+  signedAt       DateTime? @db.Date
+  validFrom      DateTime? @db.Date
+  validTo        DateTime? @db.Date
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  project Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contact ProjectContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([contactId])
+  @@index([status])
+  @@map("project_contracts")
+}
+
+model TimeEntry {
+  id           String    @id @default(uuid()) @db.Uuid
+  projectId    String    @db.Uuid
+  contactId    String?   @db.Uuid
+  workDate     DateTime  @db.Date
+  startTime    String?
+  endTime      String?
+  breakMinutes Int       @default(0)
+  hours        Decimal   @db.Decimal(6, 2)
+  activity     String
+  approved     Boolean   @default(false)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  project Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contact ProjectContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([contactId])
+  @@index([workDate])
+  @@index([approved])
+  @@map("time_entries")
 }

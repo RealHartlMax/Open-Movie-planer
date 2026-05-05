@@ -16,6 +16,8 @@ import { DashboardModule } from "./dashboard/dashboard.module";
 import { HealthModule } from "./health/health.module";
 import { ContactsModule } from "./contacts/contacts.module";
 import { AppointmentsModule } from "./appointments/appointments.module";
+import { ContractsModule } from "./contracts/contracts.module";
+import { TimeEntriesModule } from "./time-entries/time-entries.module";
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { AppointmentsModule } from "./appointments/appointments.module";
     DashboardModule,
     ContactsModule,
     AppointmentsModule,
+    ContractsModule,
+    TimeEntriesModule,
     HealthModule
   ]
 })

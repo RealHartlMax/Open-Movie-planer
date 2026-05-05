@@ -18,9 +18,10 @@ const API_BASE = (() => {
 })();
 const DEMO_PROJECT_ID = import.meta.env.VITE_DEMO_PROJECT_ID as string | undefined;
 
-type AppView = "dashboard" | "budget" | "expenses" | "shootDays" | "contacts" | "disposition";
+type AppView = "dashboard" | "budget" | "expenses" | "shootDays" | "contacts" | "contracts" | "timeTracking" | "disposition";
 type ProjectStatus = "pre" | "production" | "post";
 type ContactCategory = "crew" | "cast" | "other";
+type ContractStatus = "draft" | "active" | "expired" | "terminated";
 
 type Project = {
   id: string;
@@ -64,6 +65,35 @@ type ProjectAppointment = {
   location: string | null;
   notes: string | null;
   contactId: string | null;
+  contact?: ProjectContact | null;
+};
+
+type ProjectContract = {
+  id: string;
+  projectId: string;
+  contactId: string | null;
+  title: string;
+  contractType: string;
+  status: ContractStatus;
+  signedAt: string | null;
+  validFrom: string | null;
+  validTo: string | null;
+  notes: string | null;
+  contact?: ProjectContact | null;
+};
+
+type TimeEntry = {
+  id: string;
+  projectId: string;
+  contactId: string | null;
+  workDate: string;
+  startTime: string | null;
+  endTime: string | null;
+  breakMinutes: number;
+  hours: number | string;
+  activity: string;
+  approved: boolean;
+  notes: string | null;
   contact?: ProjectContact | null;
 };
 
@@ -267,6 +297,8 @@ export default function App() {
   const [shootDays, setShootDays] = useState<ShootDay[]>([]);
   const [contacts, setContacts] = useState<ProjectContact[]>([]);
   const [appointments, setAppointments] = useState<ProjectAppointment[]>([]);
+  const [contracts, setContracts] = useState<ProjectContract[]>([]);
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [dispositions, setDispositions] = useState<ShootDisposition[]>([]);
   const [costAccountingData, setCostAccountingData] = useState<CostAccountingRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -311,6 +343,26 @@ export default function App() {
   const [appointmentLocation, setAppointmentLocation] = useState("");
   const [appointmentContactId, setAppointmentContactId] = useState("");
   const [appointmentNotes, setAppointmentNotes] = useState("");
+
+  // Contract form
+  const [contractTitle, setContractTitle] = useState("");
+  const [contractType, setContractType] = useState("Crew-Vertrag");
+  const [contractStatus, setContractStatus] = useState<ContractStatus>("draft");
+  const [contractContactId, setContractContactId] = useState("");
+  const [contractValidFrom, setContractValidFrom] = useState("");
+  const [contractValidTo, setContractValidTo] = useState("");
+  const [contractNotes, setContractNotes] = useState("");
+
+  // Time tracking form
+  const [timeEntryDate, setTimeEntryDate] = useState(new Date().toISOString().slice(0, 10));
+  const [timeEntryContactId, setTimeEntryContactId] = useState("");
+  const [timeEntryActivity, setTimeEntryActivity] = useState("");
+  const [timeEntryStart, setTimeEntryStart] = useState("");
+  const [timeEntryEnd, setTimeEntryEnd] = useState("");
+  const [timeEntryBreakMinutes, setTimeEntryBreakMinutes] = useState("0");
+  const [timeEntryHours, setTimeEntryHours] = useState("");
+  const [timeEntryApproved, setTimeEntryApproved] = useState(false);
+  const [timeEntryNotes, setTimeEntryNotes] = useState("");
 
   // Scene form
   const [sceneNumber, setSceneNumber] = useState("");
@@ -509,6 +561,8 @@ export default function App() {
         shootDaysResponse,
         contactsResponse,
         appointmentsResponse,
+        contractsResponse,
+        timeEntriesResponse,
         dispositionsResponse
       ] = await Promise.all([
         fetch(`${API_BASE}/projects/${currentProjectId}/dashboard`),
@@ -517,16 +571,20 @@ export default function App() {
         fetch(`${API_BASE}/projects/${currentProjectId}/shoot-days`),
         fetch(`${API_BASE}/projects/${currentProjectId}/contacts`),
         fetch(`${API_BASE}/projects/${currentProjectId}/appointments`),
+        fetch(`${API_BASE}/projects/${currentProjectId}/contracts`),
+        fetch(`${API_BASE}/projects/${currentProjectId}/time-entries`),
         fetch(`${API_BASE}/projects/${currentProjectId}/shoot-dispositions`)
       ]);
 
-      const [dashboardData, rawCostCenters, expenseData, shootDayData, contactsData, appointmentsData, dispositionData] = await Promise.all([
+      const [dashboardData, rawCostCenters, expenseData, shootDayData, contactsData, appointmentsData, contractsData, timeEntriesData, dispositionData] = await Promise.all([
         parseJson<DashboardData>(dashboardResponse),
         parseJson<Array<{ id: string; name: string; budget: string | number }>>(costCentersResponse),
         parseJson<Expense[]>(expensesResponse),
         parseJson<ShootDay[]>(shootDaysResponse),
         parseJson<ProjectContact[]>(contactsResponse),
         parseJson<ProjectAppointment[]>(appointmentsResponse),
+        parseJson<ProjectContract[]>(contractsResponse),
+        parseJson<TimeEntry[]>(timeEntriesResponse),
         parseJson<ShootDisposition[]>(dispositionsResponse)
       ]);
 
@@ -555,6 +613,8 @@ export default function App() {
       setShootDays(shootDayData);
       setContacts(contactsData);
       setAppointments(appointmentsData);
+      setContracts(contractsData);
+      setTimeEntries(timeEntriesData);
       setDispositions(dispositionData);
       setSelectedDispositionId((previous) => {
         if (previous && dispositionData.some((item) => item.shootDayId === previous)) {
@@ -583,6 +643,108 @@ export default function App() {
     if (!projectId) return;
     await loadProjects(projectId);
     await loadProjectData(projectId);
+  }
+
+  function hasUnsavedDrafts(): boolean {
+    const defaultTimeEntryDate = new Date().toISOString().slice(0, 10);
+
+    return (
+      projectTitle.trim().length > 0
+      || projectDescription.trim().length > 0
+      || costCenterName.trim().length > 0
+      || costCenterBudget.trim().length > 0
+      || expenseAmount.trim().length > 0
+      || expenseDescription.trim().length > 0
+      || expenseCostCenterId.length > 0
+      || (expenseDate.length > 0 && expenseDate !== new Date().toISOString().slice(0, 10))
+      || shootDayDate.length > 0
+      || shootDayLocation.trim().length > 0
+      || shootDayLocationOwner.trim().length > 0
+      || shootDayLocationContactPerson.trim().length > 0
+      || shootDayNotes.trim().length > 0
+      || contactName.trim().length > 0
+      || contactCategory !== "crew"
+      || contactEmail.trim().length > 0
+      || contactPhone.trim().length > 0
+      || contactNotes.trim().length > 0
+      || appointmentTitle.trim().length > 0
+      || appointmentStartAt.length > 0
+      || appointmentEndAt.length > 0
+      || appointmentLocation.trim().length > 0
+      || appointmentContactId.length > 0
+      || appointmentNotes.trim().length > 0
+      || contractTitle.trim().length > 0
+      || contractType !== "Crew-Vertrag"
+      || contractStatus !== "draft"
+      || contractContactId.length > 0
+      || contractValidFrom.length > 0
+      || contractValidTo.length > 0
+      || contractNotes.trim().length > 0
+      || timeEntryDate !== defaultTimeEntryDate
+      || timeEntryContactId.length > 0
+      || timeEntryActivity.trim().length > 0
+      || timeEntryStart.length > 0
+      || timeEntryEnd.length > 0
+      || timeEntryBreakMinutes !== "0"
+      || timeEntryHours.trim().length > 0
+      || timeEntryApproved
+      || timeEntryNotes.trim().length > 0
+      || sceneNumber.trim().length > 0
+      || sceneTitle.trim().length > 0
+      || sceneSynopsis.trim().length > 0
+      || sceneLocation.trim().length > 0
+      || sceneEstimatedDuration.trim().length > 0
+      || crewName.trim().length > 0
+      || crewRole.trim().length > 0
+      || crewCallTime.trim().length > 0
+      || crewWrapTime.trim().length > 0
+      || crewNotes.trim().length > 0
+      || castName.trim().length > 0
+      || castCharacter.trim().length > 0
+      || castCallTime.trim().length > 0
+      || castScenes.trim().length > 0
+      || castNotes.trim().length > 0
+      || activityTitle.trim().length > 0
+      || activityTime.trim().length > 0
+      || activityCrew.trim().length > 0
+      || activityNotes.trim().length > 0
+      || activityTransport.trim().length > 0
+      || activityEquipment.trim().length > 0
+      || activityCatering.trim().length > 0
+      || editingActivityId !== null
+      || editActivityTime.trim().length > 0
+      || editActivityTitle.trim().length > 0
+      || editActivityCrew.trim().length > 0
+      || editActivityNotes.trim().length > 0
+      || editActivityTransport.trim().length > 0
+      || editActivityEquipment.trim().length > 0
+      || editActivityCatering.trim().length > 0
+      || dispoCallTime.trim().length > 0
+      || dispoWeather.trim().length > 0
+      || dispoGeneralNotes.trim().length > 0
+      || selectedScenarioCostCenterId.length > 0
+      || scenarioName.trim().length > 0
+      || scenarioAmount.trim().length > 0
+      || scenarioNotes.trim().length > 0
+      || positionName.trim().length > 0
+      || positionCostCenterId.length > 0
+      || positionQuantity !== "1"
+      || positionUnitRate.trim().length > 0
+      || positionNotes.trim().length > 0
+      || editingCell !== null
+      || appointmentError !== null
+    );
+  }
+
+  function handleCloseProject(): void {
+    if (hasUnsavedDrafts() && !window.confirm(t("messages.confirmCloseWithUnsaved"))) {
+      return;
+    }
+
+    setProjectId(null);
+    setView("dashboard");
+    setError(null);
+    setSelectedDispositionId("");
   }
 
   useEffect(() => {
@@ -692,7 +854,11 @@ export default function App() {
             ? t("navigation.shootPlan")
               : view === "contacts"
                 ? t("navigation.contacts")
-            : t("navigation.disposition");
+                  : view === "contracts"
+                    ? t("navigation.contracts")
+                    : view === "timeTracking"
+                      ? t("navigation.timeTracking")
+                      : t("navigation.disposition");
 
   function startBudgetEdit(costCenter: CostCenter): void {
     setEditingCell({ id: costCenter.id, draftValue: String(costCenter.budget) });
@@ -920,6 +1086,104 @@ export default function App() {
 
     try {
       const response = await fetch(`${API_BASE}/projects/${projectId}/appointments/${appointmentId}`, { method: "DELETE" });
+      if (!response.ok && response.status !== 204) throw new Error(`${response.status} ${response.statusText}`);
+      await loadProjectData(projectId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("messages.error"));
+    }
+  }
+
+  async function handleCreateContract(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    if (!projectId || !contractTitle.trim() || !contractType.trim()) return;
+
+    try {
+      await parseJson(
+        await fetch(`${API_BASE}/projects/${projectId}/contracts`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: contractTitle.trim(),
+            contractType: contractType.trim(),
+            status: contractStatus,
+            contactId: contractContactId || undefined,
+            validFrom: contractValidFrom || undefined,
+            validTo: contractValidTo || undefined,
+            notes: contractNotes.trim() || undefined
+          })
+        })
+      );
+
+      setContractTitle("");
+      setContractType("Crew-Vertrag");
+      setContractStatus("draft");
+      setContractContactId("");
+      setContractValidFrom("");
+      setContractValidTo("");
+      setContractNotes("");
+      await loadProjectData(projectId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("messages.error"));
+    }
+  }
+
+  async function handleDeleteContract(contractId: string): Promise<void> {
+    if (!projectId) return;
+    if (!window.confirm(t("messages.confirmDelete"))) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/projects/${projectId}/contracts/${contractId}`, { method: "DELETE" });
+      if (!response.ok && response.status !== 204) throw new Error(`${response.status} ${response.statusText}`);
+      await loadProjectData(projectId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("messages.error"));
+    }
+  }
+
+  async function handleCreateTimeEntry(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    if (!projectId || !timeEntryDate || !timeEntryActivity.trim()) return;
+
+    try {
+      await parseJson(
+        await fetch(`${API_BASE}/projects/${projectId}/time-entries`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workDate: timeEntryDate,
+            contactId: timeEntryContactId || undefined,
+            activity: timeEntryActivity.trim(),
+            startTime: timeEntryStart || undefined,
+            endTime: timeEntryEnd || undefined,
+            breakMinutes: Number(timeEntryBreakMinutes || "0"),
+            hours: timeEntryHours ? Number(timeEntryHours.replace(",", ".")) : undefined,
+            approved: timeEntryApproved,
+            notes: timeEntryNotes.trim() || undefined
+          })
+        })
+      );
+
+      setTimeEntryDate(new Date().toISOString().slice(0, 10));
+      setTimeEntryContactId("");
+      setTimeEntryActivity("");
+      setTimeEntryStart("");
+      setTimeEntryEnd("");
+      setTimeEntryBreakMinutes("0");
+      setTimeEntryHours("");
+      setTimeEntryApproved(false);
+      setTimeEntryNotes("");
+      await loadProjectData(projectId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("messages.error"));
+    }
+  }
+
+  async function handleDeleteTimeEntry(timeEntryId: string): Promise<void> {
+    if (!projectId) return;
+    if (!window.confirm(t("messages.confirmDelete"))) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/projects/${projectId}/time-entries/${timeEntryId}`, { method: "DELETE" });
       if (!response.ok && response.status !== 204) throw new Error(`${response.status} ${response.statusText}`);
       await loadProjectData(projectId);
     } catch (err) {
@@ -1372,9 +1636,12 @@ export default function App() {
           <button className="toolbar-button" onClick={() => setView("expenses")}>{t("navigation.expenses")}</button>
           <button className="toolbar-button" onClick={() => setView("shootDays")}>{t("navigation.shootPlan")}</button>
           <button className="toolbar-button" onClick={() => setView("contacts")}>{t("navigation.contacts")}</button>
+          <button className="toolbar-button" onClick={() => setView("contracts")}>{t("navigation.contracts")}</button>
+          <button className="toolbar-button" onClick={() => setView("timeTracking")}>{t("navigation.timeTracking")}</button>
           <button className="toolbar-button" onClick={() => setView("disposition")}>{t("navigation.disposition")}</button>
           <span className="toolbar-divider" />
           <button className="toolbar-button toolbar-button-strong" onClick={() => void refreshCurrentProject()} disabled={!projectId || loading}>{t("messages.reloadPage")}</button>
+          <button className="toolbar-button" onClick={handleCloseProject} disabled={!projectId}>{t("projects.closeProject")}</button>
           <div className="toolbar-spacer" />
           <span className="toolbar-meta">{projects.length} {t("projects.title")}</span>
           <span className="toolbar-meta">{costCenters.length} {t("costCenters.title")}</span>
@@ -1426,8 +1693,22 @@ export default function App() {
                   <small>{t("sidebar.contactsHint")}</small>
                 </span>
               </button>
-              <button className={`module-nav-item ${view === "disposition" ? "module-nav-item-active" : ""}`} onClick={() => setView("disposition")}>
+              <button className={`module-nav-item ${view === "contracts" ? "module-nav-item-active" : ""}`} onClick={() => setView("contracts")}>
                 <span className="module-code">06</span>
+                <span>
+                  <strong>{t("navigation.contracts")}</strong>
+                  <small>{t("sidebar.contractsHint")}</small>
+                </span>
+              </button>
+              <button className={`module-nav-item ${view === "timeTracking" ? "module-nav-item-active" : ""}`} onClick={() => setView("timeTracking")}>
+                <span className="module-code">07</span>
+                <span>
+                  <strong>{t("navigation.timeTracking")}</strong>
+                  <small>{t("sidebar.timeTrackingHint")}</small>
+                </span>
+              </button>
+              <button className={`module-nav-item ${view === "disposition" ? "module-nav-item-active" : ""}`} onClick={() => setView("disposition")}>
+                <span className="module-code">08</span>
                 <span>
                   <strong>{t("navigation.disposition")}</strong>
                   <small>{t("sidebar.dispositionHint")}</small>
@@ -1464,6 +1745,9 @@ export default function App() {
                     </select>
                   </label>
                   <button className="action-ghost" onClick={() => void refreshCurrentProject()} disabled={!projectId || loading}>{t("common.refresh")}</button>
+                  {activeProject ? (
+                    <button className="action-ghost" onClick={handleCloseProject}>{t("projects.closeProject")}</button>
+                  ) : null}
                   {activeProject ? (
                     <button className="action-danger" onClick={() => void handleDeleteProject(activeProject.id, activeProject.title)}>{t("projects.deleteProject")}</button>
                   ) : null}
@@ -2264,6 +2548,211 @@ export default function App() {
               </section>
             ) : null}
 
+            {projectId && view === "contracts" ? (
+              <section className="content-grid content-grid-editor">
+                <article className="panel window-panel">
+                  <div className="panel-titlebar">
+                    <div>
+                      <p className="section-tag">{t("navigation.contracts")}</p>
+                      <h3>{t("contracts.title")}</h3>
+                    </div>
+                    <span className="title-hint">{t("contracts.hint")}</span>
+                  </div>
+                  <div className="data-grid-wrap">
+                    <table className="data-grid">
+                      <thead>
+                        <tr>
+                          <th>{t("contracts.contractTitle")}</th>
+                          <th>{t("contracts.type")}</th>
+                          <th>{t("contracts.status")}</th>
+                          <th>{t("contacts.contactPerson")}</th>
+                          <th>{t("contracts.validFrom")}</th>
+                          <th>{t("contracts.validTo")}</th>
+                          <th className="align-right">{t("common.actions")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {contracts.length === 0 ? (
+                          <tr>
+                            <td colSpan={7}>{t("contracts.noContracts")}</td>
+                          </tr>
+                        ) : (
+                          contracts.map((contract) => (
+                            <tr key={contract.id}>
+                              <td>{contract.title}</td>
+                              <td>{contract.contractType}</td>
+                              <td>{t(`contracts.status_${contract.status}`)}</td>
+                              <td>{contract.contact?.fullName ?? "-"}</td>
+                              <td>{contract.validFrom ? formatDate(contract.validFrom) : "-"}</td>
+                              <td>{contract.validTo ? formatDate(contract.validTo) : "-"}</td>
+                              <td className="align-right">
+                                <button className="grid-delete" onClick={() => void handleDeleteContract(contract.id)} title={t("common.delete")}>✕</button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </article>
+
+                <article className="panel form-panel">
+                  <div className="panel-titlebar compact">
+                    <div>
+                      <p className="section-tag">{t("common.create")}</p>
+                      <h3>{t("contracts.createContract")}</h3>
+                    </div>
+                  </div>
+                  <form className="form-stack" onSubmit={(event) => void handleCreateContract(event)}>
+                    <label className="field-block">
+                      <span className="field-label">{t("contracts.contractTitle")}</span>
+                      <input required className="input-field" value={contractTitle} onChange={(event) => setContractTitle(event.target.value)} />
+                    </label>
+                    <label className="field-block">
+                      <span className="field-label">{t("contracts.type")}</span>
+                      <input required className="input-field" value={contractType} onChange={(event) => setContractType(event.target.value)} />
+                    </label>
+                    <label className="field-block">
+                      <span className="field-label">{t("contracts.status")}</span>
+                      <select className="input-field" value={contractStatus} onChange={(event) => setContractStatus(event.target.value as ContractStatus)}>
+                        <option value="draft">{t("contracts.status_draft")}</option>
+                        <option value="active">{t("contracts.status_active")}</option>
+                        <option value="expired">{t("contracts.status_expired")}</option>
+                        <option value="terminated">{t("contracts.status_terminated")}</option>
+                      </select>
+                    </label>
+                    <label className="field-block">
+                      <span className="field-label">{t("contacts.contactPerson")}</span>
+                      <select className="input-field" value={contractContactId} onChange={(event) => setContractContactId(event.target.value)}>
+                        <option value="">{t("common.open")}</option>
+                        {contacts.map((contact) => (
+                          <option key={contact.id} value={contact.id}>{contact.fullName}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field-block">
+                      <span className="field-label">{t("contracts.validFrom")}</span>
+                      <input className="input-field" type="date" value={contractValidFrom} onChange={(event) => setContractValidFrom(event.target.value)} />
+                    </label>
+                    <label className="field-block">
+                      <span className="field-label">{t("contracts.validTo")}</span>
+                      <input className="input-field" type="date" value={contractValidTo} onChange={(event) => setContractValidTo(event.target.value)} />
+                    </label>
+                    <label className="field-block">
+                      <span className="field-label">{t("columns.notes")}</span>
+                      <textarea className="input-field notes-area" value={contractNotes} onChange={(event) => setContractNotes(event.target.value)} />
+                    </label>
+                    <button className="action-primary" type="submit">{t("contracts.createContract")}</button>
+                  </form>
+                </article>
+              </section>
+            ) : null}
+
+            {projectId && view === "timeTracking" ? (
+              <section className="content-grid content-grid-editor">
+                <article className="panel window-panel">
+                  <div className="panel-titlebar">
+                    <div>
+                      <p className="section-tag">{t("navigation.timeTracking")}</p>
+                      <h3>{t("timeTracking.title")}</h3>
+                    </div>
+                    <span className="title-hint">{t("timeTracking.hint")}</span>
+                  </div>
+                  <div className="data-grid-wrap">
+                    <table className="data-grid">
+                      <thead>
+                        <tr>
+                          <th>{t("columns.date")}</th>
+                          <th>{t("contacts.contactPerson")}</th>
+                          <th>{t("timeTracking.activity")}</th>
+                          <th>{t("timeTracking.period")}</th>
+                          <th>{t("timeTracking.breakMinutes")}</th>
+                          <th>{t("timeTracking.hours")}</th>
+                          <th>{t("timeTracking.approved")}</th>
+                          <th className="align-right">{t("common.actions")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {timeEntries.length === 0 ? (
+                          <tr>
+                            <td colSpan={8}>{t("timeTracking.noEntries")}</td>
+                          </tr>
+                        ) : (
+                          timeEntries.map((entry) => (
+                            <tr key={entry.id}>
+                              <td>{formatDate(entry.workDate)}</td>
+                              <td>{entry.contact?.fullName ?? "-"}</td>
+                              <td>{entry.activity}</td>
+                              <td>{entry.startTime && entry.endTime ? `${entry.startTime} - ${entry.endTime}` : "-"}</td>
+                              <td>{entry.breakMinutes}</td>
+                              <td>{Number(entry.hours).toFixed(2)}</td>
+                              <td>{entry.approved ? t("common.yes") : t("common.no")}</td>
+                              <td className="align-right">
+                                <button className="grid-delete" onClick={() => void handleDeleteTimeEntry(entry.id)} title={t("common.delete")}>✕</button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </article>
+
+                <article className="panel form-panel">
+                  <div className="panel-titlebar compact">
+                    <div>
+                      <p className="section-tag">{t("common.create")}</p>
+                      <h3>{t("timeTracking.createEntry")}</h3>
+                    </div>
+                  </div>
+                  <form className="form-stack" onSubmit={(event) => void handleCreateTimeEntry(event)}>
+                    <label className="field-block">
+                      <span className="field-label">{t("columns.date")}</span>
+                      <input required className="input-field" type="date" value={timeEntryDate} onChange={(event) => setTimeEntryDate(event.target.value)} />
+                    </label>
+                    <label className="field-block">
+                      <span className="field-label">{t("contacts.contactPerson")}</span>
+                      <select className="input-field" value={timeEntryContactId} onChange={(event) => setTimeEntryContactId(event.target.value)}>
+                        <option value="">{t("common.open")}</option>
+                        {contacts.map((contact) => (
+                          <option key={contact.id} value={contact.id}>{contact.fullName}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field-block">
+                      <span className="field-label">{t("timeTracking.activity")}</span>
+                      <input required className="input-field" value={timeEntryActivity} onChange={(event) => setTimeEntryActivity(event.target.value)} />
+                    </label>
+                    <label className="field-block">
+                      <span className="field-label">{t("disposition.callTime")}</span>
+                      <input className="input-field" type="time" value={timeEntryStart} onChange={(event) => setTimeEntryStart(event.target.value)} />
+                    </label>
+                    <label className="field-block">
+                      <span className="field-label">{t("contacts.endAt")}</span>
+                      <input className="input-field" type="time" value={timeEntryEnd} onChange={(event) => setTimeEntryEnd(event.target.value)} />
+                    </label>
+                    <label className="field-block">
+                      <span className="field-label">{t("timeTracking.breakMinutes")}</span>
+                      <input className="input-field" type="number" min={0} value={timeEntryBreakMinutes} onChange={(event) => setTimeEntryBreakMinutes(event.target.value)} />
+                    </label>
+                    <label className="field-block">
+                      <span className="field-label">{t("timeTracking.hours")}</span>
+                      <input className="input-field" type="number" min={0} step="0.25" value={timeEntryHours} onChange={(event) => setTimeEntryHours(event.target.value)} />
+                    </label>
+                    <label className="field-block" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <input type="checkbox" checked={timeEntryApproved} onChange={(event) => setTimeEntryApproved(event.target.checked)} />
+                      <span className="field-label">{t("timeTracking.approved")}</span>
+                    </label>
+                    <label className="field-block">
+                      <span className="field-label">{t("columns.notes")}</span>
+                      <textarea className="input-field notes-area" value={timeEntryNotes} onChange={(event) => setTimeEntryNotes(event.target.value)} />
+                    </label>
+                    <button className="action-primary" type="submit">{t("timeTracking.createEntry")}</button>
+                  </form>
+                </article>
+              </section>
+            ) : null}
+
             {projectId && view === "disposition" ? (
               <section className="content-grid content-grid-editor">
                 <article className="panel window-panel">
@@ -2557,6 +3046,8 @@ export default function App() {
           <span>{t("status.budgetPositions")}: {costCenters.length}</span>
           <span>{t("status.shootDays")}: {shootDays.length}</span>
           <span>{t("navigation.contacts")}: {contacts.length}</span>
+          <span>{t("navigation.contracts")}: {contracts.length}</span>
+          <span>{t("navigation.timeTracking")}: {timeEntries.length}</span>
         </footer>
       </div>
 

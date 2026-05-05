@@ -8,7 +8,7 @@ async function bootstrap(): Promise<void> {
 
   const corsOriginEnv = process.env.CORS_ORIGIN;
   const corsOrigins = corsOriginEnv
-    ? corsOriginEnv.split(",").map((origin) => origin.trim()).filter(Boolean)
+    ? corsOriginEnv.split(",").map((origin: string) => origin.trim()).filter(Boolean)
     : true;
 
   app.enableCors({ origin: corsOrigins });
@@ -16,7 +16,7 @@ async function bootstrap(): Promise<void> {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: false,
       transform: true
     })
   );

@@ -1,0 +1,90 @@
+name: Bugmeldung
+description: Melde einen Fehler im Open Movie Planer.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke fuer deine Bugmeldung.
+        Bitte fuelle die Felder so genau wie moeglich aus.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Kurzbeschreibung
+      description: Was ist das Problem?
+      placeholder: Beim Speichern der Drehdispo erscheint ein 400 Fehler.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zur Reproduktion
+      description: Wie kann der Fehler nachvollzogen werden?
+      placeholder: |
+        1. Projekt oeffnen
+        2. In Drehdispo wechseln
+        3. Wetter/Notiz bearbeiten
+        4. Speichern klicken
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes Verhalten
+      placeholder: Die Daten werden gespeichert und eine Erfolgsmeldung erscheint.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Tatsächliches Verhalten
+      placeholder: API-Fehler 400 wird angezeigt, Daten bleiben unveraendert.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Betroffener Bereich
+      options:
+        - API (NestJS)
+        - Web (React/Vite)
+        - Datenbank (PostgreSQL/Prisma)
+        - Startskripte (start.bat/start.sh)
+        - Dokumentation
+        - Sonstiges
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Verwendete Version
+      description: Z. B. v0.1.6
+      placeholder: v0.1.6
+
+  - type: input
+    id: environment
+    attributes:
+      label: Umgebung
+      description: Betriebssystem, Browser, Node-Version
+      placeholder: Windows 11, Chrome 124, Node 20
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevante Logs/Screenshots
+      description: Fehlermeldungen, Konsolenlogs, Screenshots
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Weitere Informationen
+      description: Optionaler Kontext

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { UpdateShootDispositionDto } from "./dto/update-shoot-disposition.dto";
 
 type DispositionActivity = {
   id: string;
@@ -133,6 +134,43 @@ export class ShootDispositionsService {
     }
 
     return this.mapDisposition(shootDay);
+  }
+
+  async update(
+    projectId: string,
+    shootDayId: string,
+    dto: UpdateShootDispositionDto
+  ): Promise<ShootDisposition> {
+    await this.assertProjectExists(projectId);
+
+    const prisma = this.prisma as any;
+    const shootDay = await prisma.shootDay.findFirst({
+      where: { id: shootDayId, projectId }
+    });
+
+    if (!shootDay) {
+      throw new NotFoundException(`Shoot day ${shootDayId} not found`);
+    }
+
+    const updated = await prisma.shootDay.update({
+      where: { id: shootDayId },
+      data: {
+        callTime: dto.callTime ?? shootDay.callTime,
+        weather: dto.weather ?? shootDay.weather,
+        notes: dto.notes ?? shootDay.notes,
+        location: dto.location ?? shootDay.location,
+        locationOwner: dto.locationOwner ?? shootDay.locationOwner,
+        locationContactPerson: dto.locationContactPerson ?? shootDay.locationContactPerson
+      },
+      include: {
+        activities: { orderBy: { time: "asc" } },
+        scenes: { orderBy: { sceneNumber: "asc" } },
+        crewAssignments: { orderBy: { callTime: "asc" } },
+        castAssignments: { orderBy: { callTime: "asc" } }
+      }
+    });
+
+    return this.mapDisposition(updated);
   }
 }
 

@@ -10,6 +10,8 @@
     "expenses": "Expenses",
     "shootPlan": "Shoot Plan",
     "contacts": "Contacts & Schedule",
+    "contracts": "Contract Management",
+    "timeTracking": "Time Tracking",
     "disposition": "Call Sheet",
     "projects": "Projects",
     "settings": "Settings"
@@ -36,7 +38,9 @@
     "warning": "Warning",
     "info": "Information",
     "refresh": "Refresh",
-    "open": "open"
+    "open": "open",
+    "yes": "Yes",
+    "no": "No"
   },
   "updateNotice": {
     "title": "New Version Available",
@@ -70,6 +74,7 @@
     "lastOpened": "Last opened",
     "notOpenedYet": "Not opened yet",
     "activeProject": "Active Project",
+    "closeProject": "Close Project",
     "createFailed": "Could not create project.",
     "phase": "Phase",
     "status": "Status",
@@ -208,6 +213,32 @@
     "noAppointments": "No appointments available.",
     "endBeforeStart": "End time must be after start time."
   },
+  "contracts": {
+    "title": "Contract Management",
+    "hint": "Manage cast and crew contracts with term and status",
+    "contractTitle": "Contract",
+    "type": "Type",
+    "status": "Status",
+    "validFrom": "Valid From",
+    "validTo": "Valid To",
+    "createContract": "Create Contract",
+    "noContracts": "No contracts available.",
+    "status_draft": "Draft",
+    "status_active": "Active",
+    "status_expired": "Expired",
+    "status_terminated": "Terminated"
+  },
+  "timeTracking": {
+    "title": "Digital Time Tracking",
+    "hint": "Record working hours and approvals per person",
+    "activity": "Activity",
+    "period": "Period",
+    "breakMinutes": "Break (min)",
+    "hours": "Hours",
+    "approved": "Approved",
+    "createEntry": "Create Time Entry",
+    "noEntries": "No time entries available."
+  },
   "settings": {
     "title": "Settings",
     "language": "Language",
@@ -246,6 +277,7 @@
     "errorLoading": "Error loading data",
     "confirmDelete": "Really delete?",
     "confirmAction": "This action cannot be undone",
+    "confirmCloseWithUnsaved": "There are unsaved inputs. Close project anyway?",
     "reloadPage": "Reload",
     "apiError": "API Error"
   },
@@ -258,6 +290,8 @@
     "expensesHint": "Recorded expenses and assignment",
     "shootPlanHint": "Dates, locations, notes",
     "contactsHint": "Crew/Cast + calendar",
+    "contractsHint": "Contracts, validity, and status",
+    "timeTrackingHint": "Hours, breaks, approval state",
     "dispositionHint": "Call sheet per shoot day",
     "layoutPrinciple": "Layout Principle",
     "layoutDescription": "Toolbar on top, data grid in the center, form inspector on the right and status bar below.",

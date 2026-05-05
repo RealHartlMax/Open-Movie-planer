@@ -1,0 +1,85 @@
+name: Wunsch / Feature Request
+description: Schlage eine neue Funktion oder Verbesserung vor.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke fuer deinen Vorschlag.
+        Beschreibe bitte klar, welches Problem geloest werden soll.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Welches Problem soll geloest werden?
+      description: Beschreibe den aktuellen Pain Point.
+      placeholder: In der Vertragsverwaltung fehlt ein Export fuer aktive Vertraege.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Gewuenschte Loesung
+      description: Wie sollte die Funktion aussehen?
+      placeholder: Ein Button "Export aktive Vertraege" als CSV und PDF.
+    validations:
+      required: true
+
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User Story
+      description: Optional im Format "Als ..., moechte ich ..., damit ..."
+      placeholder: Als Produktionsleitung moechte ich alle aktiven Vertraege exportieren, damit ich sie an die Buchhaltung weitergeben kann.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Bereich
+      options:
+        - Vertragsverwaltung
+        - Digitale Zeiterfassung
+        - Kontakte & Termine
+        - Drehplan / Disposition
+        - Kosten / Kalkulation
+        - API
+        - Deployment / Startskripte
+        - Sonstiges
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Prioritaet
+      options:
+        - Niedrig
+        - Mittel
+        - Hoch
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Akzeptanzkriterien
+      description: Woran erkennen wir, dass das Feature fertig ist?
+      placeholder: |
+        - Export enthaelt nur aktive Vertraege
+        - CSV mit UTF-8
+        - Download ueber UI ohne Seitenreload
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativen
+      description: Gibt es Workarounds oder andere Loesungen?
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Weitere Informationen
+      description: Mockups, Referenzen, Screenshots, Links
