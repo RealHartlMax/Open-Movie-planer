@@ -90,13 +90,11 @@ echo PostgreSQL service started or already running.
 rem ── Node dependencies ─────────────────────────────────────────────────────
 if not exist "apps\api\node_modules" (
   echo Installing API dependencies...
-  npm --prefix apps\api ci --omit=dev --no-audit
-  if errorlevel 1 exit /b 1
+  npm --prefix apps\api ci --omit=dev --no-audit --fund=false
 )
 if not exist "apps\web\node_modules" (
   echo Installing Web dependencies...
-  npm --prefix apps\web ci --no-audit
-  if errorlevel 1 exit /b 1
+  npm --prefix apps\web ci --no-audit --fund=false
 )
 
 rem ── Create .env files ─────────────────────────────────────────────────────
