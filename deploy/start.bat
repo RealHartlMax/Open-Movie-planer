@@ -2,24 +2,15 @@
 setlocal enabledelayedexpansion
 
 rem ── Determine project root ────────────────────────────────────────────────
-if exist "%~dp0apps\" (
-  set "ROOT=%~dp0"
-) else if exist "%~dp0..\apps\" (
-  set "ROOT=%~dp0..\"
-) else (
-  echo ERROR: Cannot locate apps\ folder relative to this script.
-  pause
-  exit /b 1
-)
-
+if exist "%~dp0apps\" set "ROOT=%~dp0" & goto :root_ok
+if exist "%~dp0..\apps\" set "ROOT=%~dp0..\" & goto :root_ok
+echo ERROR: Cannot locate apps\ folder relative to this script.
+pause
+exit /b 1
+:root_ok
 cd /d "%ROOT%"
 
-rem ── Load config.json (via PowerShell) ─────────────────────────────────────
-set "CFG=config.json"
-if not exist "%CFG%" (
-  if exist "deploy\config.json" set "CFG=deploy\config.json"
-)
-
+rem ── Defaults ─────────────────────────────────────────────────────────────
 set "DB_HOST=localhost"
 set "DB_PORT=5432"
 set "DB_NAME=open_movie_planer"
@@ -28,60 +19,52 @@ set "DB_PASS=omp_password"
 set "API_PORT=3000"
 set "WEB_PORT=4173"
 
-if exist "%CFG%" (
-  for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command ^
-    "$c=Get-Content '%CFG%' -Raw | ConvertFrom-Json; ^
-     'DB_HOST='+$c.db.host; ^
-     'DB_PORT='+$c.db.port; ^
-     'DB_NAME='+$c.db.name; ^
-     'DB_USER='+$c.db.user; ^
-     'DB_PASS='+$c.db.password; ^
-     'API_PORT='+$c.api.port; ^
-     'WEB_PORT='+$c.web.port" 2^>nul`) do set "%%v"
-  echo Loaded configuration from %CFG%
-) else (
-  echo config.json not found - using defaults.
-)
+rem ── Load config.json (via PowerShell) ─────────────────────────────────────
+set "CFG=config.json"
+if not exist "%CFG%" if exist "deploy\config.json" set "CFG=deploy\config.json"
+if not exist "%CFG%" goto :cfg_done
+for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "$c=Get-Content '%CFG%' -Raw | ConvertFrom-Json; 'DB_HOST='+$c.db.host; 'DB_PORT='+$c.db.port; 'DB_NAME='+$c.db.name; 'DB_USER='+$c.db.user; 'DB_PASS='+$c.db.password; 'API_PORT='+$c.api.port; 'WEB_PORT='+$c.web.port" 2^>nul`) do set "%%v"
+echo Loaded configuration from %CFG%
+:cfg_done
 
+rem ── Check Node.js + npm ───────────────────────────────────────────────────
 where node >nul 2>nul
-if errorlevel 1 ( echo Node.js is required ^(20+^). & exit /b 1 )
-where npm  >nul 2>nul
-if errorlevel 1 ( echo npm is required. & exit /b 1 )
+if errorlevel 1 echo Node.js is required ^(20+^). & exit /b 1
+where npm >nul 2>nul
+if errorlevel 1 echo npm is required. & exit /b 1
 
 rem ── PostgreSQL via Docker ─────────────────────────────────────────────────
 where docker >nul 2>nul
-if errorlevel 1 ( echo Docker not found - trying local PostgreSQL service... & goto :try_local_pg )
-if not exist "docker-compose.yml" ( echo docker-compose.yml not found - trying local PostgreSQL service... & goto :try_local_pg )
+if errorlevel 1 goto :try_local_pg
+if not exist "docker-compose.yml" goto :try_local_pg
 docker info >nul 2>nul
-if errorlevel 1 ( echo Docker not running - trying local PostgreSQL service... & goto :try_local_pg )
+if errorlevel 1 goto :try_local_pg
 
 set "OMP_PG_ID="
 for /f "usebackq delims=" %%i in (`docker compose -p open-movie-planer -f docker-compose.yml ps -aq postgres 2^>nul`) do set "OMP_PG_ID=%%i"
-
-if defined OMP_PG_ID (
-  echo PostgreSQL data found - starting existing database...
-  docker compose -p open-movie-planer -f docker-compose.yml up -d postgres
-  goto :pg_wait
-)
+if defined OMP_PG_ID goto :pg_start_existing
 
 echo First run: downloading PostgreSQL image...
 docker compose -p open-movie-planer -f docker-compose.yml pull postgres
-if errorlevel 1 ( echo WARNING: Could not pull image. & goto :after_pg )
+if errorlevel 1 goto :after_pg
 docker compose -p open-movie-planer -f docker-compose.yml up -d postgres
-if errorlevel 1 ( echo WARNING: Could not start container. & goto :after_pg )
+if errorlevel 1 goto :after_pg
+goto :pg_wait
+
+:pg_start_existing
+echo PostgreSQL data found - starting existing database...
+docker compose -p open-movie-planer -f docker-compose.yml up -d postgres
 
 :pg_wait
 echo Waiting for PostgreSQL to accept connections...
-set OMP_PG_TRIES=0
+set "OMP_PG_TRIES=0"
 :pg_wait_loop
 set /a OMP_PG_TRIES+=1
 docker compose -p open-movie-planer -f docker-compose.yml exec -T postgres pg_isready -U %DB_USER% -d %DB_NAME% >nul 2>nul
-if not errorlevel 1 ( echo PostgreSQL is ready. & goto :after_pg )
-if !OMP_PG_TRIES! geq 30 ( echo WARNING: PostgreSQL not ready after 60s. & goto :after_pg )
+if not errorlevel 1 echo PostgreSQL is ready. & goto :after_pg
+if !OMP_PG_TRIES! geq 30 echo WARNING: PostgreSQL not ready after 60s. & goto :after_pg
 ping -n 3 127.0.0.1 >nul
 goto :pg_wait_loop
-
-goto :after_pg
 
 :try_local_pg
 set "OMP_PG_STARTED=0"
@@ -95,12 +78,12 @@ for %%s in (postgresql-x64-17 postgresql-x64-16 postgresql-x64-15 postgresql-x64
     )
   )
 )
-if !OMP_PG_STARTED! == 1 (
-  echo PostgreSQL service started or already running.
-) else (
-  echo WARNING: No PostgreSQL found. Make sure it is running on %DB_HOST%:%DB_PORT%
-  echo          ^(user: %DB_USER% ^| db: %DB_NAME%^)
-)
+if !OMP_PG_STARTED! == 1 goto :pg_svc_ok
+echo WARNING: No PostgreSQL found. Make sure it is running on %DB_HOST%:%DB_PORT%
+echo          ^(user: %DB_USER% ^| db: %DB_NAME%^)
+goto :after_pg
+:pg_svc_ok
+echo PostgreSQL service started or already running.
 
 :after_pg
 
@@ -116,7 +99,7 @@ if not exist "apps\web\node_modules" (
   if errorlevel 1 exit /b 1
 )
 
-rem ── Ensure .env files with values from config.json ───────────────────────
+rem ── Create .env files ─────────────────────────────────────────────────────
 if not exist "apps\api\.env" (
   echo DATABASE_URL=postgresql://%DB_USER%:%DB_PASS%@%DB_HOST%:%DB_PORT%/%DB_NAME%> "apps\api\.env"
   echo PORT=%API_PORT%>> "apps\api\.env"
@@ -130,42 +113,41 @@ if not exist "apps\web\.env" (
 
 rem ── Ensure PostgreSQL user + database exist ───────────────────────────────
 where psql >nul 2>nul
-if not errorlevel 1 (
-  psql -h localhost -U postgres -tc "SELECT 1 FROM pg_roles WHERE rolname='%DB_USER%'" 2>nul | find "1" >nul
-  if errorlevel 1 (
-    echo Creating PostgreSQL user %DB_USER%...
-    psql -h localhost -U postgres -c "CREATE USER %DB_USER% WITH PASSWORD '%DB_PASS%';" >nul 2>nul
-  )
-  psql -h localhost -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='%DB_NAME%'" 2>nul | find "1" >nul
-  if errorlevel 1 (
-    echo Creating PostgreSQL database %DB_NAME%...
-    psql -h localhost -U postgres -c "CREATE DATABASE %DB_NAME% OWNER %DB_USER%;" >nul 2>nul
-  )
-  psql -h localhost -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE %DB_NAME% TO %DB_USER%;" >nul 2>nul
-)
+if errorlevel 1 goto :skip_psql
+psql -h localhost -U postgres -tc "SELECT 1 FROM pg_roles WHERE rolname='%DB_USER%'" 2>nul | find "1" >nul
+if not errorlevel 1 goto :user_exists
+echo Creating PostgreSQL user %DB_USER%...
+psql -h localhost -U postgres -c "CREATE USER %DB_USER% WITH PASSWORD '%DB_PASS%';" >nul 2>nul
+:user_exists
+psql -h localhost -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='%DB_NAME%'" 2>nul | find "1" >nul
+if not errorlevel 1 goto :db_exists
+echo Creating PostgreSQL database %DB_NAME%...
+psql -h localhost -U postgres -c "CREATE DATABASE %DB_NAME% OWNER %DB_USER%;" >nul 2>nul
+:db_exists
+psql -h localhost -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE %DB_NAME% TO %DB_USER%;" >nul 2>nul
+:skip_psql
 
 rem ── Database migrations & Prisma client ──────────────────────────────────
 echo Applying database migrations...
 npm --prefix apps\api run db:deploy
-if errorlevel 1 ( echo WARNING: Migrations could not be applied - is PostgreSQL running? )
+if errorlevel 1 echo WARNING: Migrations could not be applied - is PostgreSQL running?
 
 echo Generating Prisma client...
 npm --prefix apps\api run db:generate
-if errorlevel 1 ( echo WARNING: Prisma client generation failed. )
+if errorlevel 1 echo WARNING: Prisma client generation failed.
 
 rem ── Build API if dist\ missing ────────────────────────────────────────────
-if not exist "apps\api\dist\main.js" (
-  echo Building API...
-  npm --prefix apps\api run build
-  if errorlevel 1 ( echo ERROR: API build failed. & pause & exit /b 1 )
-)
+if exist "apps\api\dist\main.js" goto :start_services
+echo Building API...
+npm --prefix apps\api run build
+if errorlevel 1 echo ERROR: API build failed. & pause & exit /b 1
 
-rem ── Start services ────────────────────────────────────────────────────────
+:start_services
 echo Starting API on port %API_PORT%...
-start "OMP API" cmd /k "cd /d %ROOT%apps\api && set PORT=%API_PORT% && npm run start"
+start "OMP API" cmd /k "cd /d "%ROOT%apps\api" && set PORT=%API_PORT% && npm run start"
 
 echo Starting Web preview on port %WEB_PORT%...
-start "OMP WEB" cmd /k "cd /d %ROOT%apps\web && npx vite preview --host 0.0.0.0 --port %WEB_PORT%"
+start "OMP WEB" cmd /k "cd /d "%ROOT%apps\web" && npx vite preview --host 0.0.0.0 --port %WEB_PORT%"
 
 echo.
 echo Open Movie Planer is starting:
