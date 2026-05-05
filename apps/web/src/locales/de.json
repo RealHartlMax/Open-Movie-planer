@@ -38,6 +38,11 @@
     "refresh": "Aktualisieren",
     "open": "offen"
   },
+  "updateNotice": {
+    "title": "Neue Version verfügbar",
+    "downloadNow": "Jetzt herunterladen",
+    "noChangelog": "Keine Änderungen dokumentiert"
+  },
   "projects": {
     "title": "Projekte",
     "newProject": "Neues Projekt",

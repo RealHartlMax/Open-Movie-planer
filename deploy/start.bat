@@ -104,11 +104,11 @@ echo PostgreSQL service started or already running.
 rem ── Node dependencies ─────────────────────────────────────────────────────
 if not exist "apps\api\node_modules" (
   echo Installing API dependencies...
-  npm --prefix apps\api ci --omit=dev --no-audit --fund=false
+  call npm --prefix apps\api ci --omit=dev --no-audit --fund=false
 )
 if not exist "apps\web\node_modules" (
   echo Installing Web dependencies...
-  npm --prefix apps\web ci --no-audit --fund=false
+  call npm --prefix apps\web ci --no-audit --fund=false
 )
 
 rem ── Sync .env files from config.json ──────────────────────────────────────
@@ -122,16 +122,33 @@ echo Synced apps\web\.env from config.json
 
 rem ── Ensure PostgreSQL user + database exist ───────────────────────────────
 if "%OMP_PSQL_EXE%"=="" echo WARNING: psql.exe not found. PostgreSQL bootstrap skipped. & goto :skip_psql
+set "PGPASSWORD=%DB_PASS%"
+"%OMP_PSQL_EXE%" -h %DB_HOST% -p %DB_PORT% -U %DB_USER% -d %DB_NAME% -w -tc "SELECT 1" >nul 2>nul
+if not errorlevel 1 goto :skip_psql
+
+if defined DB_ADMIN_PASS goto :have_admin_pass
+for /f "usebackq delims=" %%p in (`powershell -NoProfile -Command "$secure = Read-Host 'PostgreSQL admin password for local bootstrap' -AsSecureString; $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure); [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)"`) do set "DB_ADMIN_PASS=%%p"
+
+:have_admin_pass
 set "PGPASSWORD=%DB_ADMIN_PASS%"
-set "OMP_PSQL=%OMP_PSQL_EXE% -h %DB_HOST% -p %DB_PORT% -U %DB_ADMIN_USER% -d postgres -w"
+set "OMP_PSQL=\"%OMP_PSQL_EXE%\" -h %DB_HOST% -p %DB_PORT% -U %DB_ADMIN_USER% -d postgres -w"
 %OMP_PSQL% -tc "SELECT 1" >nul 2>nul
+if errorlevel 1 if /I "%DB_HOST%"=="localhost" (
+  set "OMP_PSQL=\"%OMP_PSQL_EXE%\" -h 127.0.0.1 -p %DB_PORT% -U %DB_ADMIN_USER% -d postgres -w"
+  %OMP_PSQL% -tc "SELECT 1" >nul 2>nul
+  if not errorlevel 1 set "DB_HOST=127.0.0.1"
+)
 if not errorlevel 1 goto :admin_psql_ready
 set "PGPASSWORD="
-set "OMP_PSQL=%OMP_PSQL_EXE% -d postgres -w"
+set "OMP_PSQL=\"%OMP_PSQL_EXE%\" -d postgres -w"
 %OMP_PSQL% -tc "SELECT 1" >nul 2>nul
 if not errorlevel 1 goto :admin_psql_ready
 echo WARNING: PostgreSQL bootstrap skipped. Could not connect with admin credentials.
 echo          Configure db.adminUser and db.adminPassword in config.json for local PostgreSQL installs.
+echo          Attempted admin login: %DB_ADMIN_USER%@%DB_HOST%:%DB_PORT%
+echo          PostgreSQL returned:
+set "PGPASSWORD=%DB_ADMIN_PASS%"
+"%OMP_PSQL_EXE%" -h %DB_HOST% -p %DB_PORT% -U %DB_ADMIN_USER% -d postgres -w -tc "SELECT 1"
 goto :check_app_db
 :admin_psql_ready
 %OMP_PSQL% -tc "SELECT 1 FROM pg_roles WHERE rolname='%DB_USER%'" 2>nul | find "1" >nul
@@ -145,44 +162,78 @@ echo Creating PostgreSQL database %DB_NAME%...
 %OMP_PSQL% -c "CREATE DATABASE %DB_NAME% OWNER %DB_USER%;" >nul 2>nul
 :db_exists
 %OMP_PSQL% -c "GRANT ALL PRIVILEGES ON DATABASE %DB_NAME% TO %DB_USER%;" >nul 2>nul
+
 :check_app_db
 set "PGPASSWORD=%DB_PASS%"
-%OMP_PSQL_EXE% -h %DB_HOST% -p %DB_PORT% -U %DB_USER% -d %DB_NAME% -w -tc "SELECT 1" >nul 2>nul
+"%OMP_PSQL_EXE%" -h %DB_HOST% -p %DB_PORT% -U %DB_USER% -d %DB_NAME% -w -tc "SELECT 1" >nul 2>nul
+if errorlevel 1 if /I "%DB_HOST%"=="localhost" (
+  "%OMP_PSQL_EXE%" -h 127.0.0.1 -p %DB_PORT% -U %DB_USER% -d %DB_NAME% -w -tc "SELECT 1" >nul 2>nul
+  if not errorlevel 1 set "DB_HOST=127.0.0.1"
+)
+if /I "%DB_HOST%"=="127.0.0.1" "%OMP_PSQL_EXE%" -h %DB_HOST% -p %DB_PORT% -U %DB_USER% -d %DB_NAME% -w -tc "SELECT 1" >nul 2>nul
 if not errorlevel 1 goto :skip_psql
 echo ERROR: Application database login failed for %DB_USER%@%DB_HOST%:%DB_PORT%/%DB_NAME%
+echo        db.password is the application user password, not the postgres admin password.
 echo        Update config.json with valid db.user/db.password or local admin credentials.
+echo        PostgreSQL returned:
+set "PGPASSWORD=%DB_PASS%"
+"%OMP_PSQL_EXE%" -h %DB_HOST% -p %DB_PORT% -U %DB_USER% -d %DB_NAME% -w -tc "SELECT 1"
 pause
 exit /b 1
 :skip_psql
 set "PGPASSWORD="
 
+rem ── Re-sync .env after host fallback (localhost -> 127.0.0.1) ─────────────
+echo DATABASE_URL=postgresql://%DB_USER%:%DB_PASS%@%DB_HOST%:%DB_PORT%/%DB_NAME%> "apps\api\.env"
+echo PORT=%API_PORT%>> "apps\api\.env"
+echo Synced apps\api\.env from config.json
+
+echo VITE_API_BASE_URL=> "apps\web\.env"
+echo VITE_API_PORT=%API_PORT%>> "apps\web\.env"
+echo Synced apps\web\.env from config.json
+
 rem ── Database migrations & Prisma client ──────────────────────────────────
 echo Applying database migrations...
-npm --prefix apps\api run db:deploy
+call npm --prefix apps\api run db:deploy
 if errorlevel 1 echo WARNING: Migrations could not be applied - is PostgreSQL running?
 
+set "OMP_HAS_MIGRATIONS=0"
+for /d %%d in ("prisma\migrations\*") do set "OMP_HAS_MIGRATIONS=1"
+if "!OMP_HAS_MIGRATIONS!"=="0" (
+  echo No Prisma migrations found - syncing schema via db push...
+  set "DATABASE_URL=postgresql://%DB_USER%:%DB_PASS%@%DB_HOST%:%DB_PORT%/%DB_NAME%"
+  call npx --yes prisma db push --schema prisma\schema.prisma
+  set "DATABASE_URL="
+  if errorlevel 1 (
+    echo ERROR: Prisma db push failed.
+    pause
+    exit /b 1
+  )
+)
+
 echo Generating Prisma client...
-npm --prefix apps\api run db:generate
+call npm --prefix apps\api run db:generate
 if errorlevel 1 echo WARNING: Prisma client generation failed.
 
 rem ── Build API if dist\ missing ────────────────────────────────────────────
 if exist "apps\api\dist\main.js" goto :start_services
 echo Building API...
-npm --prefix apps\api run build
+call npm --prefix apps\api run build
 if errorlevel 1 echo ERROR: API build failed. & pause & exit /b 1
 
 :start_services
 echo Starting API on port %API_PORT%...
-start "OMP API" cmd /k "cd /d "%ROOT%apps\api" && set PORT=%API_PORT% && npm run start"
+start "OMP API" cmd /k "cd /d ""%ROOT%apps\api"" && set PORT=%API_PORT% && npm run start"
 
 echo Starting Web preview on port %WEB_PORT%...
-start "OMP WEB" cmd /k "cd /d "%ROOT%apps\web" && npx vite preview --host 0.0.0.0 --port %WEB_PORT%"
+start "OMP WEB" cmd /k "cd /d ""%ROOT%apps\web"" && npx vite preview --host 0.0.0.0 --port %WEB_PORT%"
 
 echo.
 echo Open Movie Planer is starting:
 echo - API: http://localhost:%API_PORT%
 echo - WEB: http://localhost:%WEB_PORT%
 echo.
+echo Keep the "OMP API" and "OMP WEB" windows running while using the app in browser.
 echo For LAN access use your host IP, e.g. http://192.168.x.x:%WEB_PORT%
 echo.
 pause

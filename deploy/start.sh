@@ -109,6 +109,14 @@ echo "Synced apps/web/.env from config.json"
 
 # ── Ensure PostgreSQL user + database exist (local install) ──────────────────
 if command -v psql >/dev/null 2>&1; then
+  export PGPASSWORD="$DB_PASS"
+  if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -w -tc "SELECT 1" >/dev/null 2>&1; then
+    unset PGPASSWORD
+  else
+    if [[ -z "$DB_ADMIN_PASS" ]] && [[ -t 0 ]]; then
+      read -r -s -p "PostgreSQL admin password for local bootstrap: " DB_ADMIN_PASS
+      echo
+    fi
   export PGPASSWORD="$DB_ADMIN_PASS"
   OMP_PSQL=(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_ADMIN_USER" -d postgres -w)
   if ! "${OMP_PSQL[@]}" -tc "SELECT 1" >/dev/null 2>&1; then
@@ -135,11 +143,25 @@ if command -v psql >/dev/null 2>&1; then
     exit 1
   fi
   unset PGPASSWORD
+  fi
 fi
 
 # ── Database migrations & Prisma client ──────────────────────────────────────
 echo "Applying database migrations..."
 npm --prefix apps/api run db:deploy || echo "WARNING: Migrations could not be applied – is PostgreSQL running?"
+
+HAS_MIGRATIONS=0
+if [[ -d "prisma/migrations" ]]; then
+  if find "prisma/migrations" -mindepth 1 -maxdepth 1 -type d | grep -q .; then
+    HAS_MIGRATIONS=1
+  fi
+fi
+if [[ "$HAS_MIGRATIONS" -eq 0 ]]; then
+  echo "No Prisma migrations found - syncing schema via db push..."
+  export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+  npx --yes prisma db push --schema prisma/schema.prisma
+  unset DATABASE_URL
+fi
 
 echo "Generating Prisma client..."
 npm --prefix apps/api run db:generate >/dev/null 2>&1 || true

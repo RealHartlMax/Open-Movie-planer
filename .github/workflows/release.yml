@@ -134,6 +134,8 @@ jobs:
         working-directory: apps/api
 
       - name: Build Web
+        env:
+          VITE_APP_VERSION: ${{ needs.version.outputs.tag }}
         run: npm run build
         working-directory: apps/web
 

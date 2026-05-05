@@ -2,9 +2,11 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ExportButtons from "./components/ExportButtons";
 import SettingsModal from "./components/SettingsModal";
+import UpdateNotice from "./components/UpdateNotice";
 import { exportToPDF, generateDrehdispoHTML, openPrintPreview } from "./utils/exportUtils";
 import "./styles/print.css";
 import "./styles/settings.css";
+import "./styles/update-notice.css";
 
 const API_BASE = (() => {
   const envUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
@@ -2564,6 +2566,8 @@ export default function App() {
         currency={selectedCurrency}
         onCurrencyChange={setSelectedCurrency}
       />
+
+      <UpdateNotice />
     </div>
   );
 }

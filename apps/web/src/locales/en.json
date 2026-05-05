@@ -38,6 +38,11 @@
     "refresh": "Refresh",
     "open": "open"
   },
+  "updateNotice": {
+    "title": "New Version Available",
+    "downloadNow": "Download Now",
+    "noChangelog": "No changelog documented"
+  },
   "projects": {
     "title": "Projects",
     "newProject": "New Project",

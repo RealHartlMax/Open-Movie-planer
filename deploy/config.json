@@ -1,12 +1,12 @@
 {
   "db": {
-    "host": "localhost",
+    "host": "127.0.0.1",
     "port": 5432,
     "name": "open_movie_planer",
     "user": "omp_user",
     "password": "omp_password",
     "adminUser": "postgres",
-    "adminPassword": ""
+    "adminPassword": "admin_postgres"
   },
   "api": {
     "port": 3000

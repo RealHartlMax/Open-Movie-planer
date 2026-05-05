@@ -5,7 +5,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(5, 9, 14, 0.72);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13,7 +14,7 @@
 }
 
 .settings-modal {
-  background-color: var(--surface);
+  background: linear-gradient(180deg, rgba(21, 30, 41, 0.98), rgba(17, 24, 34, 0.98));
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   width: 90%;
@@ -21,7 +22,7 @@
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border: 1px solid rgba(145, 167, 194, 0.35);
 }
 
 .settings-modal-header {
@@ -29,7 +30,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid rgba(145, 167, 194, 0.28);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
 }
 
 .settings-modal-header h2 {
@@ -66,6 +68,19 @@
   flex: 1;
 }
 
+.settings-modal-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.settings-modal-content::-webkit-scrollbar-track {
+  background: rgba(12, 18, 26, 0.75);
+}
+
+.settings-modal-content::-webkit-scrollbar-thumb {
+  background: rgba(124, 198, 242, 0.5);
+  border-radius: 999px;
+}
+
 .settings-section {
   margin-bottom: 24px;
 }
@@ -73,7 +88,7 @@
 .settings-section h3 {
   margin: 0 0 16px 0;
   font-size: 16px;
-  color: var(--text-1);
+  color: #d6e7fb;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -87,8 +102,33 @@
   display: block;
   margin-bottom: 8px;
   font-size: 14px;
-  color: var(--text-1);
+  color: #d2deec;
   font-weight: 500;
+}
+
+.settings-modal .input-field,
+.settings-modal textarea.input-field,
+.settings-modal select.input-field {
+  border: 1px solid rgba(134, 160, 191, 0.55);
+  background: linear-gradient(180deg, rgba(18, 28, 39, 0.98), rgba(14, 22, 31, 0.98));
+  color: #e8eff9;
+}
+
+.settings-modal .input-field::placeholder,
+.settings-modal textarea.input-field::placeholder {
+  color: #92a6bf;
+}
+
+.settings-modal .input-field:focus,
+.settings-modal textarea.input-field:focus,
+.settings-modal select.input-field:focus {
+  border-color: rgba(124, 198, 242, 0.9);
+  box-shadow: 0 0 0 3px rgba(124, 198, 242, 0.22);
+}
+
+.settings-modal select.input-field option {
+  background: #12202d;
+  color: #e8eff9;
 }
 
 .language-buttons {
@@ -99,10 +139,10 @@
 
 .language-btn {
   padding: 10px 16px;
-  background-color: var(--bg-1, rgba(255, 255, 255, 0.05));
+  background-color: rgba(16, 25, 36, 0.9);
   border: 2px solid transparent;
   border-radius: 6px;
-  color: var(--text-2);
+  color: #d8e5f5;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -110,8 +150,8 @@
 }
 
 .language-btn:hover {
-  background-color: var(--bg-2, rgba(255, 255, 255, 0.1));
-  border-color: var(--accent);
+  background-color: rgba(26, 38, 53, 0.95);
+  border-color: rgba(124, 198, 242, 0.75);
 }
 
 .language-btn.active {
@@ -123,7 +163,8 @@
 
 .settings-modal-footer {
   padding: 16px 24px;
-  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-top: 1px solid rgba(145, 167, 194, 0.28);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
   display: flex;
   justify-content: flex-end;
   gap: 8px;
@@ -187,22 +228,22 @@
   width: 96px;
   height: 64px;
   object-fit: contain;
-  border: 1px solid var(--border, rgba(255,255,255,0.12));
+  border: 1px solid rgba(145, 167, 194, 0.4);
   border-radius: 6px;
-  background: rgba(255,255,255,0.05);
+  background: rgba(12, 18, 26, 0.9);
   padding: 4px;
 }
 
 .logo-placeholder {
   width: 96px;
   height: 64px;
-  border: 1px dashed var(--border, rgba(255,255,255,0.2));
+  border: 1px dashed rgba(145, 167, 194, 0.5);
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  color: var(--text-2);
+  color: #a8bad0;
   text-align: center;
   padding: 4px;
 }
