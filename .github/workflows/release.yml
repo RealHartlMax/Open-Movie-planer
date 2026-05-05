@@ -47,6 +47,9 @@ jobs:
             bump_type="minor"
           elif grep -q '\[fix\]' <<<"$commit_messages"; then
             bump_type="patch"
+          elif [[ -z "$latest_tag" ]]; then
+            bump_type="minor"
+            echo "No release marker found, but no existing tag – creating initial release v0.1.0."
           else
             echo "No release marker found. Use one of: [fix], [feat], [Major] in commit messages."
             exit 1
