@@ -120,7 +120,9 @@ chmod +x deploy/start.sh
 ```
 
 Standardports: API `3000` · Web `4173`  
-Über Umgebungsvariablen anpassbar: `API_PORT`, `WEB_PORT`, `WEB_HOST`
+Konfiguration erfolgt über `config.json` im Release-Bundle oder `deploy/config.json` im Repo.
+
+Für lokale PostgreSQL-Installationen ohne Docker müssen bei Bedarf zusätzlich `db.adminUser` und `db.adminPassword` gesetzt werden, damit das Skript User, Datenbank und Rechte automatisch anlegen kann.
 
 ---
 
@@ -133,6 +135,21 @@ Standardports: API `3000` · Web `4173`
 | Datenbank | `open_movie_planer` |
 | User | `omp_user` |
 | Passwort | `omp_password` |
+
+Beispiel für lokale PostgreSQL-Installation mit Admin-Login in `config.json`:
+```
+{
+  "db": {
+    "host": "localhost",
+    "port": 5432,
+    "name": "open_movie_planer",
+    "user": "omp_user",
+    "password": "omp_password",
+    "adminUser": "postgres",
+    "adminPassword": "DEIN_POSTGRES_PASSWORT"
+  }
+}
+```
 
 Connection String (`apps/api/.env`):
 ```

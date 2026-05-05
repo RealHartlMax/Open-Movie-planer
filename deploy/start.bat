@@ -16,6 +16,8 @@ set "DB_PORT=5432"
 set "DB_NAME=open_movie_planer"
 set "DB_USER=omp_user"
 set "DB_PASS=omp_password"
+set "DB_ADMIN_USER=postgres"
+set "DB_ADMIN_PASS="
 set "API_PORT=3000"
 set "WEB_PORT=4173"
 
@@ -23,7 +25,7 @@ rem ── Load config.json (via PowerShell) ───────────�
 set "CFG=config.json"
 if not exist "%CFG%" if exist "deploy\config.json" set "CFG=deploy\config.json"
 if not exist "%CFG%" goto :cfg_done
-for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "$c=Get-Content '%CFG%' -Raw | ConvertFrom-Json; 'DB_HOST='+$c.db.host; 'DB_PORT='+$c.db.port; 'DB_NAME='+$c.db.name; 'DB_USER='+$c.db.user; 'DB_PASS='+$c.db.password; 'API_PORT='+$c.api.port; 'WEB_PORT='+$c.web.port" 2^>nul`) do set "%%v"
+for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "$c=Get-Content '%CFG%' -Raw | ConvertFrom-Json; 'DB_HOST='+$c.db.host; 'DB_PORT='+$c.db.port; 'DB_NAME='+$c.db.name; 'DB_USER='+$c.db.user; 'DB_PASS='+$c.db.password; 'DB_ADMIN_USER='+$c.db.adminUser; 'DB_ADMIN_PASS='+$c.db.adminPassword; 'API_PORT='+$c.api.port; 'WEB_PORT='+$c.web.port" 2^>nul`) do set "%%v"
 echo Loaded configuration from %CFG%
 :cfg_done
 
@@ -32,6 +34,18 @@ where node >nul 2>nul
 if errorlevel 1 echo Node.js is required ^(20+^). & exit /b 1
 where npm >nul 2>nul
 if errorlevel 1 echo npm is required. & exit /b 1
+
+set "OMP_PSQL_EXE=psql"
+where psql >nul 2>nul
+if not errorlevel 1 goto :psql_ready
+for %%p in ("%ProgramFiles%\PostgreSQL\17\bin\psql.exe" "%ProgramFiles%\PostgreSQL\16\bin\psql.exe" "%ProgramFiles%\PostgreSQL\15\bin\psql.exe" "%ProgramFiles%\PostgreSQL\14\bin\psql.exe" "%ProgramFiles(x86)%\PostgreSQL\17\bin\psql.exe" "%ProgramFiles(x86)%\PostgreSQL\16\bin\psql.exe" "%ProgramFiles(x86)%\PostgreSQL\15\bin\psql.exe" "%ProgramFiles(x86)%\PostgreSQL\14\bin\psql.exe") do (
+  if exist "%%~p" (
+    set "OMP_PSQL_EXE=%%~p"
+    goto :psql_ready
+  )
+)
+set "OMP_PSQL_EXE="
+:psql_ready
 
 rem ── PostgreSQL via Docker ─────────────────────────────────────────────────
 where docker >nul 2>nul
@@ -97,33 +111,50 @@ if not exist "apps\web\node_modules" (
   npm --prefix apps\web ci --no-audit --fund=false
 )
 
-rem ── Create .env files ─────────────────────────────────────────────────────
-if not exist "apps\api\.env" (
-  echo DATABASE_URL=postgresql://%DB_USER%:%DB_PASS%@%DB_HOST%:%DB_PORT%/%DB_NAME%> "apps\api\.env"
-  echo PORT=%API_PORT%>> "apps\api\.env"
-  echo Created apps\api\.env
-)
-if not exist "apps\web\.env" (
-  echo VITE_API_BASE_URL=> "apps\web\.env"
-  echo VITE_API_PORT=%API_PORT%>> "apps\web\.env"
-  echo Created apps\web\.env
-)
+rem ── Sync .env files from config.json ──────────────────────────────────────
+echo DATABASE_URL=postgresql://%DB_USER%:%DB_PASS%@%DB_HOST%:%DB_PORT%/%DB_NAME%> "apps\api\.env"
+echo PORT=%API_PORT%>> "apps\api\.env"
+echo Synced apps\api\.env from config.json
+
+echo VITE_API_BASE_URL=> "apps\web\.env"
+echo VITE_API_PORT=%API_PORT%>> "apps\web\.env"
+echo Synced apps\web\.env from config.json
 
 rem ── Ensure PostgreSQL user + database exist ───────────────────────────────
-where psql >nul 2>nul
-if errorlevel 1 goto :skip_psql
-psql -h localhost -U postgres -tc "SELECT 1 FROM pg_roles WHERE rolname='%DB_USER%'" 2>nul | find "1" >nul
+if "%OMP_PSQL_EXE%"=="" echo WARNING: psql.exe not found. PostgreSQL bootstrap skipped. & goto :skip_psql
+set "PGPASSWORD=%DB_ADMIN_PASS%"
+set "OMP_PSQL=%OMP_PSQL_EXE% -h %DB_HOST% -p %DB_PORT% -U %DB_ADMIN_USER% -d postgres -w"
+%OMP_PSQL% -tc "SELECT 1" >nul 2>nul
+if not errorlevel 1 goto :admin_psql_ready
+set "PGPASSWORD="
+set "OMP_PSQL=%OMP_PSQL_EXE% -d postgres -w"
+%OMP_PSQL% -tc "SELECT 1" >nul 2>nul
+if not errorlevel 1 goto :admin_psql_ready
+echo WARNING: PostgreSQL bootstrap skipped. Could not connect with admin credentials.
+echo          Configure db.adminUser and db.adminPassword in config.json for local PostgreSQL installs.
+goto :check_app_db
+:admin_psql_ready
+%OMP_PSQL% -tc "SELECT 1 FROM pg_roles WHERE rolname='%DB_USER%'" 2>nul | find "1" >nul
 if not errorlevel 1 goto :user_exists
 echo Creating PostgreSQL user %DB_USER%...
-psql -h localhost -U postgres -c "CREATE USER %DB_USER% WITH PASSWORD '%DB_PASS%';" >nul 2>nul
+%OMP_PSQL% -c "CREATE USER %DB_USER% WITH PASSWORD '%DB_PASS%';" >nul 2>nul
 :user_exists
-psql -h localhost -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='%DB_NAME%'" 2>nul | find "1" >nul
+%OMP_PSQL% -tc "SELECT 1 FROM pg_database WHERE datname='%DB_NAME%'" 2>nul | find "1" >nul
 if not errorlevel 1 goto :db_exists
 echo Creating PostgreSQL database %DB_NAME%...
-psql -h localhost -U postgres -c "CREATE DATABASE %DB_NAME% OWNER %DB_USER%;" >nul 2>nul
+%OMP_PSQL% -c "CREATE DATABASE %DB_NAME% OWNER %DB_USER%;" >nul 2>nul
 :db_exists
-psql -h localhost -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE %DB_NAME% TO %DB_USER%;" >nul 2>nul
+%OMP_PSQL% -c "GRANT ALL PRIVILEGES ON DATABASE %DB_NAME% TO %DB_USER%;" >nul 2>nul
+:check_app_db
+set "PGPASSWORD=%DB_PASS%"
+%OMP_PSQL_EXE% -h %DB_HOST% -p %DB_PORT% -U %DB_USER% -d %DB_NAME% -w -tc "SELECT 1" >nul 2>nul
+if not errorlevel 1 goto :skip_psql
+echo ERROR: Application database login failed for %DB_USER%@%DB_HOST%:%DB_PORT%/%DB_NAME%
+echo        Update config.json with valid db.user/db.password or local admin credentials.
+pause
+exit /b 1
 :skip_psql
+set "PGPASSWORD="
 
 rem ── Database migrations & Prisma client ──────────────────────────────────
 echo Applying database migrations...

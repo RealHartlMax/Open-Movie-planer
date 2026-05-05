@@ -17,6 +17,8 @@ DB_PORT="5432"
 DB_NAME="open_movie_planer"
 DB_USER="omp_user"
 DB_PASS="omp_password"
+DB_ADMIN_USER="postgres"
+DB_ADMIN_PASS=""
 API_PORT="3000"
 WEB_PORT="4173"
 WEB_HOST="0.0.0.0"
@@ -28,6 +30,8 @@ if [[ -f "$CFG" ]]; then
   DB_NAME="$( _json "['db']['name']"     || echo "$DB_NAME" )"; DB_NAME="${DB_NAME:-open_movie_planer}"
   DB_USER="$( _json "['db']['user']"     || echo "$DB_USER" )"; DB_USER="${DB_USER:-omp_user}"
   DB_PASS="$( _json "['db']['password']" || echo "$DB_PASS" )"; DB_PASS="${DB_PASS:-omp_password}"
+  DB_ADMIN_USER="$( _json "['db']['adminUser']" || echo "$DB_ADMIN_USER" )"; DB_ADMIN_USER="${DB_ADMIN_USER:-postgres}"
+  DB_ADMIN_PASS="$( _json "['db']['adminPassword']" || echo "$DB_ADMIN_PASS" )"; DB_ADMIN_PASS="${DB_ADMIN_PASS:-}"
   API_PORT="$(_json "['api']['port']"    || echo "$API_PORT")"; API_PORT="${API_PORT:-3000}"
   WEB_PORT="$(_json "['web']['port']"    || echo "$WEB_PORT")"; WEB_PORT="${WEB_PORT:-4173}"
   echo "Loaded configuration from $CFG"
@@ -95,28 +99,42 @@ if [[ ! -d "apps/web/node_modules" ]]; then
   npm --prefix apps/web ci --no-audit
 fi
 
-# ── Ensure .env files with values from config.json ───────────────────────────
-if [[ ! -f "apps/api/.env" ]]; then
-  printf 'DATABASE_URL="postgresql://%s:%s@%s:%s/%s"\nPORT=%s\n' \
-    "$DB_USER" "$DB_PASS" "$DB_HOST" "$DB_PORT" "$DB_NAME" "$API_PORT" > "apps/api/.env"
-  echo "Created apps/api/.env"
-fi
-if [[ ! -f "apps/web/.env" ]]; then
-  printf 'VITE_API_BASE_URL=\nVITE_API_PORT=%s\n' "$API_PORT" > "apps/web/.env"
-  echo "Created apps/web/.env"
-fi
+# ── Sync .env files from config.json ─────────────────────────────────────────
+printf 'DATABASE_URL="postgresql://%s:%s@%s:%s/%s"\nPORT=%s\n' \
+  "$DB_USER" "$DB_PASS" "$DB_HOST" "$DB_PORT" "$DB_NAME" "$API_PORT" > "apps/api/.env"
+echo "Synced apps/api/.env from config.json"
+
+printf 'VITE_API_BASE_URL=\nVITE_API_PORT=%s\n' "$API_PORT" > "apps/web/.env"
+echo "Synced apps/web/.env from config.json"
 
 # ── Ensure PostgreSQL user + database exist (local install) ──────────────────
 if command -v psql >/dev/null 2>&1; then
-  if ! psql -U postgres -tc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" 2>/dev/null | grep -q 1; then
-    echo "Creating PostgreSQL user ${DB_USER}..."
-    psql -U postgres -c "CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASS}';" >/dev/null 2>&1 || true
+  export PGPASSWORD="$DB_ADMIN_PASS"
+  OMP_PSQL=(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_ADMIN_USER" -d postgres -w)
+  if ! "${OMP_PSQL[@]}" -tc "SELECT 1" >/dev/null 2>&1; then
+    unset PGPASSWORD
+    OMP_PSQL=(psql -d postgres -w)
   fi
-  if ! psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" 2>/dev/null | grep -q 1; then
-    echo "Creating PostgreSQL database ${DB_NAME}..."
-    psql -U postgres -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};" >/dev/null 2>&1 || true
+  if "${OMP_PSQL[@]}" -tc "SELECT 1" >/dev/null 2>&1; then
+    if ! "${OMP_PSQL[@]}" -tc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" 2>/dev/null | grep -q 1; then
+      echo "Creating PostgreSQL user ${DB_USER}..."
+      "${OMP_PSQL[@]}" -c "CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASS}';" >/dev/null 2>&1 || true
+    fi
+    if ! "${OMP_PSQL[@]}" -tc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" 2>/dev/null | grep -q 1; then
+      echo "Creating PostgreSQL database ${DB_NAME}..."
+      "${OMP_PSQL[@]}" -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};" >/dev/null 2>&1 || true
+    fi
+    "${OMP_PSQL[@]}" -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};" >/dev/null 2>&1 || true
+  else
+    echo "WARNING: PostgreSQL bootstrap skipped. Set db.adminUser/db.adminPassword in config.json for local PostgreSQL installs."
   fi
-  psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};" >/dev/null 2>&1 || true
+  export PGPASSWORD="$DB_PASS"
+  if ! psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -w -tc "SELECT 1" >/dev/null 2>&1; then
+    echo "ERROR: Application database login failed for ${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+    echo "       Update config.json with valid db.user/db.password or local admin credentials."
+    exit 1
+  fi
+  unset PGPASSWORD
 fi
 
 # ── Database migrations & Prisma client ──────────────────────────────────────

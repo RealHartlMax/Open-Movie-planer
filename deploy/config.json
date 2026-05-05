@@ -4,7 +4,9 @@
     "port": 5432,
     "name": "open_movie_planer",
     "user": "omp_user",
-    "password": "omp_password"
+    "password": "omp_password",
+    "adminUser": "postgres",
+    "adminPassword": ""
   },
   "api": {
     "port": 3000
