@@ -161,6 +161,7 @@ jobs:
           cp -r prisma "$BUNDLE_DIR/"
           cp README.md "$BUNDLE_DIR/README.md"
           cp docker-compose.yml "$BUNDLE_DIR/docker-compose.yml"
+          cp deploy/config.json "$BUNDLE_DIR/config.json"
           cp deploy/start.bat "$BUNDLE_DIR/start.bat"
           cp deploy/start.sh "$BUNDLE_DIR/start.sh"
           chmod +x "$BUNDLE_DIR/start.sh"

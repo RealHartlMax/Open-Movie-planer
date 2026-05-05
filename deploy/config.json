@@ -1,0 +1,15 @@
+{
+  "db": {
+    "host": "localhost",
+    "port": 5432,
+    "name": "open_movie_planer",
+    "user": "omp_user",
+    "password": "omp_password"
+  },
+  "api": {
+    "port": 3000
+  },
+  "web": {
+    "port": 4173
+  }
+}
