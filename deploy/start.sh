@@ -46,20 +46,51 @@ if command -v docker >/dev/null 2>&1 && [[ -f "docker-compose.yml" ]]; then
     $COMPOSE up -d postgres
   fi
 else
-  echo "WARNING: Docker not found or docker-compose.yml missing."
-  echo "         Make sure PostgreSQL is running on localhost:5432"
-  echo "         (user: omp_user | password: omp_password | db: open_movie_planer)"
+  # Docker not available – try local PostgreSQL service
+  PG_STARTED=0
+
+  # systemd (Debian/Ubuntu/Fedora)
+  if command -v systemctl >/dev/null 2>&1; then
+    for SVC in postgresql postgresql-16 postgresql-15 postgresql-14; do
+      if systemctl list-unit-files "${SVC}.service" >/dev/null 2>&1; then
+        echo "Found local PostgreSQL service: ${SVC}"
+        sudo systemctl start "${SVC}" 2>/dev/null || true
+        echo "PostgreSQL service started (or already running)."
+        PG_STARTED=1
+        break
+      fi
+    done
+  fi
+
+  # macOS Homebrew
+  if [[ "$PG_STARTED" -eq 0 ]] && command -v brew >/dev/null 2>&1; then
+    if brew list postgresql@16 >/dev/null 2>&1; then
+      echo "Starting Homebrew PostgreSQL..."
+      brew services start postgresql@16 2>/dev/null || true
+      PG_STARTED=1
+    elif brew list postgresql >/dev/null 2>&1; then
+      echo "Starting Homebrew PostgreSQL..."
+      brew services start postgresql 2>/dev/null || true
+      PG_STARTED=1
+    fi
+  fi
+
+  if [[ "$PG_STARTED" -eq 0 ]]; then
+    echo "WARNING: Docker not found and no local PostgreSQL service detected."
+    echo "         Make sure PostgreSQL is running on localhost:5432"
+    echo "         (user: omp_user | password: omp_password | db: open_movie_planer)"
+  fi
 fi
 
 # ── Node dependencies ────────────────────────────────────────────────────────
 if [[ ! -d "apps/api/node_modules" ]]; then
   echo "Installing API dependencies..."
-  npm --prefix apps/api ci --omit=dev
+  npm --prefix apps/api ci --omit=dev --no-audit
 fi
 
 if [[ ! -d "apps/web/node_modules" ]]; then
   echo "Installing Web dependencies..."
-  npm --prefix apps/web ci
+  npm --prefix apps/web ci --no-audit
 fi
 
 # ── Database migrations & client ─────────────────────────────────────────────

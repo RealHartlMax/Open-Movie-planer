@@ -32,23 +32,20 @@ if errorlevel 1 (
 rem ── PostgreSQL via Docker ─────────────────────────────────────────────────
 where docker >nul 2>nul
 if errorlevel 1 (
-  echo WARNING: Docker not found.
-  echo          Make sure PostgreSQL is running on localhost:5432
-  echo          ^(user: omp_user ^| password: omp_password ^| db: open_movie_planer^)
-  goto :skip_docker
+  echo Docker not found - trying local PostgreSQL service...
+  goto :try_local_pg
 )
 
 if not exist "docker-compose.yml" (
-  echo WARNING: docker-compose.yml not found.
-  goto :skip_docker
+  echo WARNING: docker-compose.yml not found - trying local PostgreSQL service...
+  goto :try_local_pg
 )
 
 rem Test whether Docker daemon is reachable at all
 docker info >nul 2>nul
 if errorlevel 1 (
-  echo WARNING: Docker is installed but not running.
-  echo          Start Docker Desktop and re-run this script, or start PostgreSQL manually.
-  goto :skip_docker
+  echo Docker is installed but not running - trying local PostgreSQL service...
+  goto :try_local_pg
 )
 
 rem Check whether the postgres container already exists (empty = first run)
@@ -68,14 +65,14 @@ echo First run: downloading PostgreSQL image ^(this may take a moment^)...
 docker compose -p open-movie-planer -f docker-compose.yml pull postgres
 if errorlevel 1 (
   echo WARNING: Could not pull PostgreSQL image. Continuing anyway...
-  goto :skip_docker
+  goto :after_local_pg
 )
 
 echo Starting PostgreSQL for the first time...
 docker compose -p open-movie-planer -f docker-compose.yml up -d postgres
 if errorlevel 1 (
   echo WARNING: Could not start PostgreSQL container. Continuing anyway...
-  goto :skip_docker
+  goto :after_local_pg
 )
 
 :pg_wait
@@ -87,27 +84,53 @@ set /a OMP_PG_TRIES+=1
 docker compose -p open-movie-planer -f docker-compose.yml exec -T postgres pg_isready -U omp_user -d open_movie_planer >nul 2>nul
 if not errorlevel 1 (
   echo PostgreSQL is ready.
-  goto :skip_docker
+  goto :after_local_pg
 )
 if !OMP_PG_TRIES! geq 30 (
   echo WARNING: PostgreSQL did not become ready after 60s. Check: docker compose logs postgres
-  goto :skip_docker
+  goto :after_local_pg
 )
 ping -n 3 127.0.0.1 >nul
 goto :pg_wait_loop
 
-:skip_docker
+:skip_docker ─────────────────────────────────────────────────────
+goto :after_local_pg
 
-rem ── Node dependencies ─────────────────────────────────────────────────────
-if not exist "apps\api\node_modules" (
+:try_local_pg
+rem Try to start a locally installed PostgreSQL Windows service
+rem Looks for common service names: postgresql-x64-17/16/15/14, postgresql
+set "OMP_PG_STARTED=0"
+for %%s in (postgresql-x64-17 postgresql-x64-16 postgresql-x64-15 postgresql-x64-14 postgresql) do (
+  if !OMP_PG_STARTED! == 0 (
+    sc query "%%s" >nul 2>nul
+    if not errorlevel 1 (
+      echo Found local PostgreSQL service: %%s
+      net start "%%s" >nul 2>nul
+      if not errorlevel 1 (
+        echo PostgreSQL service started.
+      ) else (
+        echo PostgreSQL service is already running.
+      )
+      set "OMP_PG_STARTED=1"
+    )
+  )
+)
+if !OMP_PG_STARTED! == 0 (
+  echo WARNING: No PostgreSQL service found and Docker is not available.
+  echo          Make sure PostgreSQL is running on localhost:5432
+  echo          ^(user: omp_user ^| password: omp_password ^| db: open_movie_planer^)
+)
+
+:after_local_pg
+rem ── Node dependencies
   echo Installing API dependencies...
-  npm --prefix apps\api ci --omit=dev
+  npm --prefix apps\api ci --omit=dev --no-audit
   if errorlevel 1 exit /b 1
 )
 
 if not exist "apps\web\node_modules" (
   echo Installing Web dependencies...
-  npm --prefix apps\web ci
+  npm --prefix apps\web ci --no-audit
   if errorlevel 1 exit /b 1
 )
 
