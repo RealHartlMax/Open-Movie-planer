@@ -42,7 +42,7 @@ Konkrete Umsetzung im Produkt:
 - Restbudget-Berechnung
 - Top-Kostenstellen nach Ausgaben
 
-## 2. Fuer Phase 2 vormerken
+## 2. Phase 2 (Basis umgesetzt)
 
 ### Kontakt-Terminverwaltung
 
@@ -52,6 +52,9 @@ Potenzial:
 - Kontakte pro Projekt
 - Terminlisten und einfache Kalenderintegration
 
+Status:
+- API + UI umgesetzt (Kontakte, Termine, Kalenderansicht)
+
 ### Vertragsverwaltung
 
 Quelle: pic_reference/Vertragsverwaltung
@@ -60,6 +63,10 @@ Potenzial:
 - Vertragsobjekte fuer Cast/Crew
 - Versionierung und Dokumentenverknuepfung
 
+Status:
+- API + UI Basis umgesetzt (CRUD fuer Projektvertraege)
+- Dokumentenmanagement/Versionierung weiterhin Ausbaustufe
+
 ### Digitale-Zeiterfassung
 
 Quelle: pic_reference/Digitale-Zeiterfassung
@@ -67,6 +74,10 @@ Quelle: pic_reference/Digitale-Zeiterfassung
 Potenzial:
 - Arbeitszeit-Erfassung
 - Genehmigungsworkflows
+
+Status:
+- API + UI Basis umgesetzt (Zeiteintraege inkl. Stundenberechnung)
+- Vollstaendiger Genehmigungsworkflow weiterhin Ausbaustufe
 
 ## 3. Out of Scope fuer MVP (nur Referenzwissen)
 

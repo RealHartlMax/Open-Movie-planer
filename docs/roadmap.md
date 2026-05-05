@@ -57,8 +57,8 @@ Ursprünglich als offene MVP-Lücken geführt, alle umgesetzt:
 | 5 | **Kontakt- & Terminverwaltung** (Crew/Cast + Kalender) | ✅ API + UI (Kontakte, Termine, Kalenderansicht) |
 | 6 | **Drehdispo-Erstellung** (Tagesablaufplan / Call Sheet) | ✅ Vollständig umgesetzt (siehe Details unten) |
 | 7 | **Einstellungen: Produktionsfirma + Logo** | ✅ localStorage-persistent (Name, Adresse, Telefon, E-Mail, Website, USt-IdNr., Logo-Upload) |
-| 8 | **Vertragsverwaltung** (Cast/Crew-Verträge, Dokumentenlink) | ⬜ offen |
-| 9 | **Digitale Zeiterfassung** (Arbeitszeit, Genehmigungsworkflow) | ⬜ offen |
+| 8 | **Vertragsverwaltung** (Cast/Crew-Verträge, Dokumentenlink) | ✅ API + UI Basis umgesetzt |
+| 9 | **Digitale Zeiterfassung** (Arbeitszeit, Genehmigungsworkflow) | ✅ API + UI Basis umgesetzt |
 | 10 | **Authentifizierung / Login** (JWT, Sessions) | ⬜ offen · Voraussetzung für Rollen |
 | 11 | **Mehrmandantenfähigkeit** (mehrere User-Workspaces) | ⬜ offen · Voraussetzung für SaaS |
 
@@ -73,7 +73,7 @@ Ursprünglich als offene MVP-Lücken geführt, alle umgesetzt:
 - Crew-Disposition (Name, Funktion, Rufzeit, Wrapzeit, Notizen)
 - Cast-Disposition (Darsteller/in, Rolle, Rufzeit, Szenen, Notizen)
 - PDF-Export (DIN A4, druckfertig) + Druckvorschau
-- API-Endpunkte: `GET /projects/:id/shoot-dispositions[/:shootDayId]`
+- API-Endpunkte: `GET /projects/:projectId/shoot-dispositions`, `GET /projects/:projectId/shoot-dispositions/:shootDayId`, `PUT /projects/:projectId/shoot-dispositions/:shootDayId`
 
 **Offen für Ausbaustufe:**
 - E-Mail-Versand an Crew
@@ -119,4 +119,4 @@ Alle MVP-Nacharbeiten sind abgeschlossen. Die nächsten sinnvollen Schritte komm
 2. **Budget-Versionierung** (BudgetScenarios vollständig ausbauen: Vergleich, Historie)
 3. **Datei-Upload für Belege** (Receipts an Expense hängen)
 4. **Authentifizierung / Login** (JWT) – Voraussetzung für Rollen & Mehrmandantenfähigkeit
-5. **Vertragsverwaltung** (Cast/Crew-Verträge, Dokumentenlink)
+5. **Genehmigungsworkflow in der Zeiterfassung** (Freigabeprozess ausbauen)

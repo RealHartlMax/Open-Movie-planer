@@ -210,7 +210,7 @@ if "!OMP_HAS_MIGRATIONS!"=="0" (
   (
     echo DATABASE_URL=postgresql://%DB_USER%:%DB_PASS%@%DB_HOST%:%DB_PORT%/%DB_NAME%
   ) > ".env"
-  call npx --prefix apps\api --yes prisma db push --schema ../../prisma/schema.prisma
+  call "apps\api\node_modules\.bin\prisma.cmd" db push --schema "%ROOT%prisma\schema.prisma"
   del ".env" >nul 2>nul
   if defined OMP_ENV_BACKUP ren ".env.backup" ".env"
   if errorlevel 1 (

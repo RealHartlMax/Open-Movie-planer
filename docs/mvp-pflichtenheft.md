@@ -1,13 +1,13 @@
 # Open Movie Planer – MVP Pflichtenheft
 
-Stand: Mai 2026 (aktualisiert)
+Stand: Mai 2026 (aktualisiert, v0.2.0)
 
 ## 1. Produktziel
 
 Entwicklung eines fokussierten Produktions- und Budgettools fuer kleine Film- und Content-Produktionen.
 Das System optimiert Planung und Kostenkontrolle, ohne ERP-Komplexitaet aus Phase 1 vorwegzunehmen.
 
-**Status: MVP vollständig implementiert und deployed.**
+**Status: MVP vollständig implementiert und deployed. Phase-2-Basis für Vertragsverwaltung und Zeiterfassung ist umgesetzt.**
 
 ## 2. Abgrenzung
 
@@ -20,6 +20,8 @@ Das System optimiert Planung und Kostenkontrolle, ohne ERP-Komplexitaet aus Phas
 - Einfache Drehplanung (Drehtage, Drehdisposition/Call Sheet)
 - Drehdispo-Aktivitäten (Transport, Equipment, Catering, PDF-Export)
 - Kontakt- & Terminverwaltung (Crew/Cast, Kalender)
+- Vertragsverwaltung (CRUD-Basis)
+- Digitale Zeiterfassung (CRUD-Basis inkl. Stundenberechnung)
 - Dashboard mit Kernkennzahlen
 - Lokalisierung DE/EN
 - Einstellungen (Sprache, Währung, Produktionsfirma + Logo)

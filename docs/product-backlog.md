@@ -27,8 +27,8 @@ Stand: Mai 2026
 | 5 | Kontakt- & Terminverwaltung (Crew/Cast + Kalender) | ✅ |
 | 6 | Drehdispo-Erstellung (Call Sheet, PDF-Export) | ✅ inkl. Transport/Equipment/Catering |
 | 7 | Einstellungen: Produktionsfirma + Logo | ✅ |
-| 8 | Vertragsverwaltung (Cast/Crew-Verträge, Dokumentenlink) | ⬜ offen |
-| 9 | Digitale Zeiterfassung (Arbeitszeit, Genehmigungsworkflow) | ⬜ offen |
+| 8 | Vertragsverwaltung (Cast/Crew-Verträge, Dokumentenlink) | ✅ API + UI Basis |
+| 9 | Digitale Zeiterfassung (Arbeitszeit, Genehmigungsworkflow) | ✅ API + UI Basis |
 | 10 | Authentifizierung / Login (JWT, Sessions) | ⬜ offen |
 
 ### Could Have (Phase 3)

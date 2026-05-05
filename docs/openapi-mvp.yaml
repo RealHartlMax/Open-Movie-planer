@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: Open Movie Planer API
-  version: 0.1.0
-  description: MVP API fuer Projekt-, Budget-, Kosten- und Drehplanung.
+  version: 0.2.0
+  description: Aktueller API-Stand mit Projekt-, Budget-, Dispo-, Kontakt-, Vertrags- und Zeiterfassungsmodulen.
 
 servers:
   - url: http://localhost:3000
@@ -10,198 +10,588 @@ servers:
 tags:
   - name: Projects
   - name: CostCenters
+  - name: CostPositions
+  - name: BudgetScenarios
   - name: Expenses
   - name: ShootDays
+  - name: ShootDayActivities
+  - name: ShootDispositions
+  - name: Scenes
+  - name: CrewAssignments
+  - name: CastAssignments
+  - name: ExternalCostAccounting
   - name: Dashboard
+  - name: Contacts
+  - name: Appointments
+  - name: Contracts
+  - name: TimeEntries
+  - name: Health
 
 paths:
   /projects:
     get:
       tags: [Projects]
-      summary: Listet Projekte
+      summary: List projects
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Project'
+        '200': { description: OK }
     post:
       tags: [Projects]
-      summary: Erstellt ein Projekt
+      summary: Create project
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/CreateProjectRequest'
+            schema: { type: object }
       responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Project'
+        '201': { description: Created }
 
   /projects/{projectId}:
     get:
       tags: [Projects]
-      summary: Holt Projekt-Details
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
+      summary: Get project
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Project'
-        '404':
-          description: Not Found
+        '200': { description: OK }
+        '404': { description: Not Found }
     put:
       tags: [Projects]
-      summary: Aktualisiert ein Projekt
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
+      summary: Update project
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateProjectRequest'
+            schema: { type: object }
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Project'
+        '200': { description: OK }
     delete:
       tags: [Projects]
-      summary: Loescht ein Projekt
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
+      summary: Delete project
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
       responses:
-        '204':
-          description: No Content
+        '204': { description: No Content }
 
   /projects/{projectId}/cost-centers:
     get:
       tags: [CostCenters]
-      summary: Listet Kostenstellen eines Projekts
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CostCenter'
+      summary: List cost centers
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
+      responses: { '200': { description: OK } }
     post:
       tags: [CostCenters]
-      summary: Erstellt eine Kostenstelle
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
+      summary: Create cost center
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCostCenterRequest'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CostCenter'
+            schema: { type: object }
+      responses: { '201': { description: Created } }
+
+  /projects/{projectId}/cost-centers/{id}:
+    put:
+      tags: [CostCenters]
+      summary: Update cost center
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [CostCenters]
+      summary: Delete cost center
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Id' }]
+      responses: { '204': { description: No Content } }
+
+  /cost-positions:
+    post:
+      tags: [CostPositions]
+      summary: Create cost position
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '201': { description: Created } }
+    get:
+      tags: [CostPositions]
+      summary: List cost positions
+      responses: { '200': { description: OK } }
+
+  /cost-positions/by-cost-center/{costCenterId}:
+    get:
+      tags: [CostPositions]
+      summary: List cost positions by cost center
+      parameters: [{ $ref: '#/components/parameters/CostCenterId' }]
+      responses: { '200': { description: OK } }
+
+  /cost-positions/{id}:
+    get:
+      tags: [CostPositions]
+      summary: Get cost position
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { description: OK } }
+    patch:
+      tags: [CostPositions]
+      summary: Update cost position
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [CostPositions]
+      summary: Delete cost position
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '204': { description: No Content } }
+
+  /cost-positions/{id}/amount:
+    get:
+      tags: [CostPositions]
+      summary: Get calculated amount for cost position
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { description: OK } }
+
+  /budget-scenarios:
+    post:
+      tags: [BudgetScenarios]
+      summary: Create budget scenario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '201': { description: Created } }
+    get:
+      tags: [BudgetScenarios]
+      summary: List budget scenarios
+      responses: { '200': { description: OK } }
+
+  /budget-scenarios/{id}:
+    get:
+      tags: [BudgetScenarios]
+      summary: Get budget scenario
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { description: OK } }
+    patch:
+      tags: [BudgetScenarios]
+      summary: Update budget scenario
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [BudgetScenarios]
+      summary: Delete budget scenario
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '204': { description: No Content } }
 
   /projects/{projectId}/expenses:
     get:
       tags: [Expenses]
-      summary: Listet Ausgaben eines Projekts
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Expense'
+      summary: List expenses
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
+      responses: { '200': { description: OK } }
     post:
       tags: [Expenses]
-      summary: Erfasst eine Ausgabe
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
+      summary: Create expense
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/CreateExpenseRequest'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expense'
+            schema: { type: object }
+      responses: { '201': { description: Created } }
+
+  /projects/{projectId}/expenses/{id}:
+    put:
+      tags: [Expenses]
+      summary: Update expense
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [Expenses]
+      summary: Delete expense
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Id' }]
+      responses: { '204': { description: No Content } }
 
   /projects/{projectId}/shoot-days:
     get:
       tags: [ShootDays]
-      summary: Listet Drehtage eines Projekts
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ShootDay'
+      summary: List shoot days
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
+      responses: { '200': { description: OK } }
     post:
       tags: [ShootDays]
-      summary: Legt einen Drehtag an
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
+      summary: Create shoot day
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/CreateShootDayRequest'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ShootDay'
+            schema: { type: object }
+      responses: { '201': { description: Created } }
+
+  /projects/{projectId}/shoot-days/{id}:
+    put:
+      tags: [ShootDays]
+      summary: Update shoot day
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [ShootDays]
+      summary: Delete shoot day
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Id' }]
+      responses: { '204': { description: No Content } }
+
+  /projects/{projectId}/shoot-days/{shootDayId}/activities:
+    post:
+      tags: [ShootDayActivities]
+      summary: Create activity
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '201': { description: Created } }
+    get:
+      tags: [ShootDayActivities]
+      summary: List activities
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }]
+      responses: { '200': { description: OK } }
+
+  /projects/{projectId}/shoot-days/{shootDayId}/activities/{id}:
+    get:
+      tags: [ShootDayActivities]
+      summary: Get activity
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }, { $ref: '#/components/parameters/Id' }]
+      responses: { '200': { description: OK } }
+    patch:
+      tags: [ShootDayActivities]
+      summary: Update activity
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }, { $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [ShootDayActivities]
+      summary: Delete activity
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }, { $ref: '#/components/parameters/Id' }]
+      responses: { '204': { description: No Content } }
+
+  /projects/{projectId}/shoot-dispositions:
+    get:
+      tags: [ShootDispositions]
+      summary: List shoot dispositions
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
+      responses: { '200': { description: OK } }
+
+  /projects/{projectId}/shoot-dispositions/{shootDayId}:
+    get:
+      tags: [ShootDispositions]
+      summary: Get shoot disposition
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }]
+      responses: { '200': { description: OK } }
+    put:
+      tags: [ShootDispositions]
+      summary: Update shoot disposition metadata
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
+
+  /projects/{projectId}/shoot-days/{shootDayId}/scenes:
+    post:
+      tags: [Scenes]
+      summary: Create scene
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '201': { description: Created } }
+    get:
+      tags: [Scenes]
+      summary: List scenes
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }]
+      responses: { '200': { description: OK } }
+
+  /projects/{projectId}/shoot-days/{shootDayId}/scenes/{id}:
+    patch:
+      tags: [Scenes]
+      summary: Update scene
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }, { $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [Scenes]
+      summary: Delete scene
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }, { $ref: '#/components/parameters/Id' }]
+      responses: { '204': { description: No Content } }
+
+  /projects/{projectId}/shoot-days/{shootDayId}/crew-assignments:
+    post:
+      tags: [CrewAssignments]
+      summary: Create crew assignment
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '201': { description: Created } }
+    get:
+      tags: [CrewAssignments]
+      summary: List crew assignments
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }]
+      responses: { '200': { description: OK } }
+
+  /projects/{projectId}/shoot-days/{shootDayId}/crew-assignments/{id}:
+    patch:
+      tags: [CrewAssignments]
+      summary: Update crew assignment
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }, { $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [CrewAssignments]
+      summary: Delete crew assignment
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }, { $ref: '#/components/parameters/Id' }]
+      responses: { '204': { description: No Content } }
+
+  /projects/{projectId}/shoot-days/{shootDayId}/cast-assignments:
+    post:
+      tags: [CastAssignments]
+      summary: Create cast assignment
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '201': { description: Created } }
+    get:
+      tags: [CastAssignments]
+      summary: List cast assignments
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }]
+      responses: { '200': { description: OK } }
+
+  /projects/{projectId}/shoot-days/{shootDayId}/cast-assignments/{id}:
+    patch:
+      tags: [CastAssignments]
+      summary: Update cast assignment
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }, { $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [CastAssignments]
+      summary: Delete cast assignment
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/ShootDayId' }, { $ref: '#/components/parameters/Id' }]
+      responses: { '204': { description: No Content } }
+
+  /external-cost-accounting:
+    get:
+      tags: [ExternalCostAccounting]
+      summary: Get external cost accounting rows
+      responses: { '200': { description: OK } }
+
+  /external-cost-accounting/{costCenterId}/forecast:
+    patch:
+      tags: [ExternalCostAccounting]
+      summary: Update forecast for cost center
+      parameters: [{ $ref: '#/components/parameters/CostCenterId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
 
   /projects/{projectId}/dashboard:
     get:
       tags: [Dashboard]
-      summary: Liefert aggregierte Dashboard-Daten fuer ein Projekt
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProjectDashboard'
+      summary: Get dashboard data for project
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
+      responses: { '200': { description: OK } }
+
+  /projects/{projectId}/contacts:
+    get:
+      tags: [Contacts]
+      summary: List contacts
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
+      responses: { '200': { description: OK } }
+    post:
+      tags: [Contacts]
+      summary: Create contact
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '201': { description: Created } }
+
+  /projects/{projectId}/contacts/{id}:
+    patch:
+      tags: [Contacts]
+      summary: Update contact
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [Contacts]
+      summary: Delete contact
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Id' }]
+      responses: { '204': { description: No Content } }
+
+  /projects/{projectId}/appointments:
+    get:
+      tags: [Appointments]
+      summary: List appointments
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
+      responses: { '200': { description: OK } }
+    post:
+      tags: [Appointments]
+      summary: Create appointment
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '201': { description: Created } }
+
+  /projects/{projectId}/appointments/{id}:
+    patch:
+      tags: [Appointments]
+      summary: Update appointment
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [Appointments]
+      summary: Delete appointment
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Id' }]
+      responses: { '204': { description: No Content } }
+
+  /projects/{projectId}/contracts:
+    get:
+      tags: [Contracts]
+      summary: List contracts
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
+      responses: { '200': { description: OK } }
+    post:
+      tags: [Contracts]
+      summary: Create contract
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '201': { description: Created } }
+
+  /projects/{projectId}/contracts/{id}:
+    patch:
+      tags: [Contracts]
+      summary: Update contract
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [Contracts]
+      summary: Delete contract
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Id' }]
+      responses: { '204': { description: No Content } }
+
+  /projects/{projectId}/time-entries:
+    get:
+      tags: [TimeEntries]
+      summary: List time entries
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
+      responses: { '200': { description: OK } }
+    post:
+      tags: [TimeEntries]
+      summary: Create time entry
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '201': { description: Created } }
+
+  /projects/{projectId}/time-entries/{id}:
+    patch:
+      tags: [TimeEntries]
+      summary: Update time entry
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [TimeEntries]
+      summary: Delete time entry
+      parameters: [{ $ref: '#/components/parameters/ProjectId' }, { $ref: '#/components/parameters/Id' }]
+      responses: { '204': { description: No Content } }
+
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses: { '200': { description: OK } }
 
 components:
   parameters:
@@ -212,193 +602,24 @@ components:
       schema:
         type: string
         format: uuid
-
-  schemas:
-    Project:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        title:
-          type: string
-        description:
-          type: string
-          nullable: true
-        status:
-          type: string
-          enum: [pre, production, post]
-        startDate:
-          type: string
-          format: date
-          nullable: true
-        endDate:
-          type: string
-          format: date
-          nullable: true
-      required: [id, title, status]
-
-    CreateProjectRequest:
-      type: object
-      properties:
-        title:
-          type: string
-        description:
-          type: string
-        status:
-          type: string
-          enum: [pre, production, post]
-        startDate:
-          type: string
-          format: date
-        endDate:
-          type: string
-          format: date
-      required: [title, status]
-
-    UpdateProjectRequest:
-      allOf:
-        - $ref: '#/components/schemas/CreateProjectRequest'
-
-    CostCenter:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        projectId:
-          type: string
-          format: uuid
-        name:
-          type: string
-        budget:
-          type: number
-          format: double
-      required: [id, projectId, name, budget]
-
-    CreateCostCenterRequest:
-      type: object
-      properties:
-        name:
-          type: string
-        budget:
-          type: number
-          format: double
-      required: [name]
-
-    Expense:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        projectId:
-          type: string
-          format: uuid
-        costCenterId:
-          type: string
-          format: uuid
-          nullable: true
-        amount:
-          type: number
-          format: double
-        description:
-          type: string
-          nullable: true
-        expenseDate:
-          type: string
-          format: date
-          nullable: true
-      required: [id, projectId, amount]
-
-    CreateExpenseRequest:
-      type: object
-      properties:
-        costCenterId:
-          type: string
-          format: uuid
-        amount:
-          type: number
-          format: double
-        description:
-          type: string
-        expenseDate:
-          type: string
-          format: date
-      required: [amount]
-
-    ShootDay:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        projectId:
-          type: string
-          format: uuid
-        date:
-          type: string
-          format: date
-        location:
-          type: string
-          nullable: true
-        notes:
-          type: string
-          nullable: true
-      required: [id, projectId, date]
-
-    CreateShootDayRequest:
-      type: object
-      properties:
-        date:
-          type: string
-          format: date
-        location:
-          type: string
-        notes:
-          type: string
-      required: [date]
-
-    DashboardCostCenter:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-        budget:
-          type: number
-          format: double
-        spent:
-          type: number
-          format: double
-        delta:
-          type: number
-          format: double
-      required: [id, name, budget, spent, delta]
-
-    ProjectDashboard:
-      type: object
-      properties:
-        projectId:
-          type: string
-          format: uuid
-        totalBudget:
-          type: number
-          format: double
-        totalSpent:
-          type: number
-          format: double
-        remainingBudget:
-          type: number
-          format: double
-        nextShootDays:
-          type: array
-          items:
-            $ref: '#/components/schemas/ShootDay'
-        topCostCenters:
-          type: array
-          items:
-            $ref: '#/components/schemas/DashboardCostCenter'
-      required: [projectId, totalBudget, totalSpent, remainingBudget, nextShootDays, topCostCenters]
+    ShootDayId:
+      name: shootDayId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CostCenterId:
+      name: costCenterId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid

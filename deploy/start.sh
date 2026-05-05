@@ -159,7 +159,7 @@ fi
 if [[ "$HAS_MIGRATIONS" -eq 0 ]]; then
   echo "No Prisma migrations found - syncing schema via db push..."
   export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
-  npx --yes prisma db push --schema prisma/schema.prisma
+  ./apps/api/node_modules/.bin/prisma db push --schema ./prisma/schema.prisma
   unset DATABASE_URL
 fi
 

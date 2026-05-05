@@ -3,7 +3,7 @@
 Open Movie Planer ist ein fokussiertes Produktions- und Budgettool für Creator, Indie-Filmer und kleine Produktionsteams.
 Es bietet Projektplanung, Budgetkontrolle, Kosten-Tracking, Drehplanung mit Call-Sheet-Export und Kontaktverwaltung – komplett im Browser, ohne Cloud-Zwang.
 
-> **Stand:** Mai 2026 · Version 0.1.0 · Stack: React 18 + NestJS + PostgreSQL + Prisma
+> **Stand:** Mai 2026 · Version 0.2.0 · Stack: React 18 + NestJS + PostgreSQL + Prisma
 
 ---
 
@@ -21,6 +21,8 @@ Es bietet Projektplanung, Budgetkontrolle, Kosten-Tracking, Drehplanung mit Call
 | PDF-Export & Druckvorschau (alle Module) | ✅ |
 | Dashboard (KPI-Karten, nächste Drehtage, Top-Kostenstellen) | ✅ |
 | Kontakt- & Terminverwaltung (Crew/Cast + Kalenderansicht) | ✅ |
+| Vertragsverwaltung (API + UI Basis) | ✅ |
+| Digitale Zeiterfassung (API + UI Basis) | ✅ |
 | Einstellungen: Sprache (DE/EN), Währung, Produktionsfirma + Logo | ✅ |
 | Dark Mode (CSS-Variablen-basiert) | ✅ |
 | Lokalisierung DE/EN (react-i18next, Umschaltung live) | ✅ |

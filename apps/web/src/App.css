@@ -43,6 +43,18 @@
   font-weight: 700;
 }
 
+.titlebar-version {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #133252;
+  background: linear-gradient(180deg, #cde6ff, #9ec4ea);
+  border: 1px solid rgba(8, 38, 70, 0.35);
+}
+
 .titlebar-context {
   opacity: 0.85;
   font-size: 0.9rem;

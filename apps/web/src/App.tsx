@@ -17,6 +17,7 @@ const API_BASE = (() => {
   return `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
 })();
 const DEMO_PROJECT_ID = import.meta.env.VITE_DEMO_PROJECT_ID as string | undefined;
+const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? "dev";
 
 type AppView = "dashboard" | "budget" | "expenses" | "shootDays" | "contacts" | "contracts" | "timeTracking" | "disposition";
 type ProjectStatus = "pre" | "production" | "post";
@@ -860,6 +861,14 @@ export default function App() {
                       ? t("navigation.timeTracking")
                       : t("navigation.disposition");
 
+    useEffect(() => {
+      const titleBase = t("app.title");
+      const context = projectId
+        ? `${activeProject?.title ?? ""} - ${currentViewLabel}`.trim()
+        : t("views.projectSelection");
+      document.title = `${titleBase} v${APP_VERSION} | ${context}`;
+    }, [activeProject?.title, currentViewLabel, projectId, t]);
+
   function startBudgetEdit(costCenter: CostCenter): void {
     setEditingCell({ id: costCenter.id, draftValue: String(costCenter.budget) });
   }
@@ -1621,6 +1630,7 @@ export default function App() {
           <div className="titlebar-left">
             <span className="titlebar-dot" />
             <span className="titlebar-text">{t("app.title")}</span>
+            <span className="titlebar-version">v{APP_VERSION}</span>
             <span className="titlebar-context">{currentViewLabel}</span>
           </div>
           <div className="titlebar-actions">
@@ -1631,15 +1641,6 @@ export default function App() {
         </header>
 
         <div className="toolbar-strip">
-          <button className="toolbar-button" onClick={() => setView("dashboard")}>{t("navigation.project")}</button>
-          <button className="toolbar-button" onClick={() => setView("budget")}>{t("navigation.budget")}</button>
-          <button className="toolbar-button" onClick={() => setView("expenses")}>{t("navigation.expenses")}</button>
-          <button className="toolbar-button" onClick={() => setView("shootDays")}>{t("navigation.shootPlan")}</button>
-          <button className="toolbar-button" onClick={() => setView("contacts")}>{t("navigation.contacts")}</button>
-          <button className="toolbar-button" onClick={() => setView("contracts")}>{t("navigation.contracts")}</button>
-          <button className="toolbar-button" onClick={() => setView("timeTracking")}>{t("navigation.timeTracking")}</button>
-          <button className="toolbar-button" onClick={() => setView("disposition")}>{t("navigation.disposition")}</button>
-          <span className="toolbar-divider" />
           <button className="toolbar-button toolbar-button-strong" onClick={() => void refreshCurrentProject()} disabled={!projectId || loading}>{t("messages.reloadPage")}</button>
           <button className="toolbar-button" onClick={handleCloseProject} disabled={!projectId}>{t("projects.closeProject")}</button>
           <div className="toolbar-spacer" />
